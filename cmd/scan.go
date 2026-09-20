@@ -532,15 +532,23 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 	var toSave []findings.Finding
 	totalOpen := 0
 	for host, ports := range results {
+		cdnProvider, behindCDN := netscan.ResolveCDNProvider(host)
+
 		for _, p := range ports {
 			totalOpen++
+			ruleName := fmt.Sprintf("Puerto abierto: %d (%s)", p.Port, p.Service)
+			evidence := p.Banner
+			if p.Banner == "" && behindCDN {
+				ruleName = fmt.Sprintf("Puerto abierto sin servicio backend visible: %d (%s)", p.Port, p.Service)
+				evidence = fmt.Sprintf("El handshake TCP fue aceptado por el borde de %s (CDN/proxy anycast), pero no se recibió respuesta de aplicación. No se pudo confirmar que exista un servicio real detrás de este puerto — es un patrón esperado en infraestructura de CDN sin passthrough L4 configurado para él.", cdnProvider)
+			}
 			toSave = append(toSave, findings.Finding{
 				ScanID:    scanID,
 				RuleID:    "open-port",
-				RuleName:  fmt.Sprintf("Puerto abierto: %d (%s)", p.Port, p.Service),
+				RuleName:  ruleName,
 				Target:    fmt.Sprintf("%s:%d", host, p.Port),
 				Severity:  "info",
-				Evidence:  p.Banner,
+				Evidence:  evidence,
 				Timestamp: time.Now(),
 			})
 
