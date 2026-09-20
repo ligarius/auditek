@@ -1,8 +1,8 @@
 package netscan
 
 import (
-	"fmt"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -68,7 +68,7 @@ func ScanHost(host string, ports []int, opts ScanOptions) []PortResult {
 }
 
 func scanPort(host string, port int, timeout time.Duration) PortResult {
-	address := fmt.Sprintf("%s:%d", host, port)
+	address := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
 		return PortResult{Host: host, Port: port, Open: false}
