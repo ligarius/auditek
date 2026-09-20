@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -63,7 +64,7 @@ func probeTCP(host string, req TCPRequest) (*Response, error) {
 		timeout = time.Duration(req.TimeoutMs) * time.Millisecond
 	}
 
-	address := fmt.Sprintf("%s:%d", host, req.Port)
+	address := net.JoinHostPort(host, strconv.Itoa(req.Port))
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
 		return nil, err
