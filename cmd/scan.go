@@ -16,6 +16,7 @@ import (
 	"auditek/internal/engine"
 	"auditek/internal/findings"
 	"auditek/internal/netscan"
+	"auditek/internal/progress"
 	"auditek/internal/scope"
 	"auditek/internal/subdomain"
 )
@@ -176,6 +177,7 @@ func runScanCmd(args []string) error {
 	skipConfirm := fs.Bool("yes", false, "omite la confirmación de autorización")
 	delayMs := fs.Int("delay", 150, "pausa entre requests en ms (0 = sin límite, no recomendado)")
 	ports := fs.String("ports", "top100", "puertos a escanear (solo scan network): top100 | 80,443 | 1-1000")
+	profile := fs.String("profile", "normal", "solo scan network: fast | normal | deep")
 	excludeRules := fs.String("exclude-rule", "", "IDs de reglas a excluir, separados por coma (ej. missing-csp-header,directory-listing-enabled)")
 	rulesDir := fs.String("rules", "rules", "directorio de reglas a cargar")
 	internalYes := fs.Bool("internal-yes", false, "omite la confirmación reforzada para escaneos de red privada/interna (usar con extremo cuidado)")
@@ -216,7 +218,7 @@ func runScanCmd(args []string) error {
 
 	switch scanType {
 	case "network":
-		return runNetworkScan(target, *stealthMode, *ports, excluded, *rulesDir, *execHook)
+		return runNetworkScan(target, *stealthMode, *ports, *profile, excluded, *rulesDir, *execHook)
 	case "web":
 		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook)
 	case "subdomains":
@@ -383,6 +385,16 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 		return err
 	}
 
+	
+	// Mostrar hallazgos en pantalla
+	displayFindings(toSave)
+	
+	// Ofrecer exportar HTML
+	if promptExportHTML(scanID) {
+		if err := exportHTMLReport(scanID, toSave, target); err != nil {
+			fmt.Printf("Error exportando HTML: %v\n", err)
+		}
+	}
 	fmt.Printf("Escaneo completo (%s): %d hallazgos\n", scanID, len(toSave))
 	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
 
@@ -439,21 +451,55 @@ func lateralMovementFinding(scanID, host string, port int) *findings.Finding {
 	}
 }
 
-func runNetworkScan(target string, stealth bool, portsSpec string, excluded map[string]bool, rulesDir string, execHook string) error {
+func runNetworkScan(target string, stealth bool, portsSpec string, profileName string, excluded map[string]bool, rulesDir string, execHook string) error {
 	hosts, err := netscan.ExpandHosts(target)
 	if err != nil {
 		return fmt.Errorf("target inválido: %w", err)
 	}
 
-	ports, err := netscan.ParsePorts(portsSpec)
-	if err != nil {
-		return fmt.Errorf("especificación de puertos inválida: %w", err)
+	// Si --ports no se especificó (usa default "top100"), usar profile
+	var ports []int
+	if portsSpec != "top100" {
+		// Usuario especificó puertos explícitamente
+		ports, err = netscan.ParsePorts(portsSpec)
+		if err != nil {
+			return fmt.Errorf("especificación de puertos inválida: %w", err)
+		}
+	} else {
+		// Usar profile
+		prof := netscan.GetProfile(profileName)
+		ports = prof.Ports
+		fmt.Printf("Perfil: %s — %s\n", prof.Name, prof.Description)
 	}
 
-	opts := netscan.DefaultOptions()
+	prof := netscan.GetProfile(profileName)
+	opts := netscan.ScanOptions{
+		Timeout:     prof.Timeout,
+		Concurrency: prof.Concurrency,
+	}
+
 	fmt.Printf("Escaneando %d host(s), %d puerto(s)...\n", len(hosts), len(ports))
 
+	// Crear barra de progreso
+	totalChecks := len(hosts) * len(ports)
+	bar := progress.NewProgressBar(totalChecks)
+	foundPorts := 0
+
+	// Callback para actualizar progreso
+	opts.ProgressFn = func(completed, total int) {
+		// Contar puertos abiertos es complejo, por ahora solo mostrar progreso de conexiones
+		bar.Update(completed, foundPorts)
+	}
+
 	results := netscan.ScanMultipleHosts(hosts, ports, opts)
+
+	// Contar puertos abiertos
+	for _, hostPorts := range results {
+		foundPorts += len(hostPorts)
+	}
+
+	bar.Done()
+	fmt.Printf("Escaneo de puertos completo: %d puertos abiertos\n", foundPorts)
 
 	isInternal := netscan.IsPrivateTarget(target)
 
@@ -539,6 +585,17 @@ func runNetworkScan(target string, stealth bool, portsSpec string, excluded map[
 
 	if err := store.SaveFindings(scanID, toSave); err != nil {
 		return err
+	}
+
+	
+	// Mostrar hallazgos en pantalla
+	displayFindings(toSave)
+	
+	// Ofrecer exportar HTML
+	if promptExportHTML(scanID) {
+		if err := exportHTMLReport(scanID, toSave, target); err != nil {
+			fmt.Printf("Error exportando HTML: %v\n", err)
+		}
 	}
 
 	fmt.Printf("Escaneo completo (%s): %d puertos abiertos\n", scanID, totalOpen)

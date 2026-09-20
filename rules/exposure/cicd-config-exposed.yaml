@@ -2,22 +2,55 @@ id: exposed-cicd-config
 info:
   name: "Archivo de configuración de CI/CD expuesto"
   severity: medium
-  cwe: ["CWE-200"]
-  tags: [exposure, supply-chain, cicd]
-  description: "Archivo de pipeline de CI/CD accesible públicamente"
+  tags: [exposure, cicd, devops]
+  description: "Archivos de configuración de pipelines de CI/CD accesibles públicamente"
   impact: "Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue)."
 type: http
 http:
   - method: GET
     path:
-      - "{{BaseURL}}/.gitlab-ci.yml"
-      - "{{BaseURL}}/.travis.yml"
-      - "{{BaseURL}}/.circleci/config.yml"
-      - "{{BaseURL}}/Jenkinsfile"
       - "{{BaseURL}}/.github/workflows/ci.yml"
-      - "{{BaseURL}}/.github/workflows/main.yml"
-      - "{{BaseURL}}/.github/workflows/deploy.yml"
       - "{{BaseURL}}/.github/workflows/build.yml"
+      - "{{BaseURL}}/.github/workflows/deploy.yml"
+      - "{{BaseURL}}/.github/workflows/main.yml"
     matchers:
       - type: status
         status: [200]
+      - type: word
+        part: body
+        words: ["on:", "jobs:", "runs-on:"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/.gitlab-ci.yml"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["stages:", "script:", "image:"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/.travis.yml"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["language:", "script:", "before_script:"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/Jenkinsfile"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["pipeline", "stage", "node"]
+        condition: and
+    matchers-condition: and

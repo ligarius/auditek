@@ -23,6 +23,13 @@ const htmlTemplate = `
   .low { background: #4b5563; }
   .info { background: #6b7280; }
   .summary-box .count { font-size: 28px; font-weight: bold; display: block; }
+  .section-title { margin-top: 40px; margin-bottom: 20px; color: #0f3460; font-size: 20px; border-bottom: 2px solid #0f3460; padding-bottom: 10px; }
+  .recon-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+  .recon-table th { background: #f0f0f0; padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: bold; }
+  .recon-table td { padding: 10px; border: 1px solid #ddd; }
+  .recon-table tr:nth-child(even) { background: #fafafa; }
+  .service { color: #0f3460; font-weight: bold; }
+  .banner { font-family: monospace; font-size: 12px; color: #666; word-break: break-all; }
   .finding { border-left: 4px solid #ccc; padding: 14px 18px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 6px 6px 0; }
   .finding.critical { border-color: #b91c1c; }
   .finding.high { border-color: #ea580c; }
@@ -56,7 +63,29 @@ const htmlTemplate = `
     {{end}}
   </div>
 
-  <h2>Hallazgos Detallados</h2>
+  {{if .HasReconnaissance}}
+  <h2 class="section-title">Reconocimiento de Red (Network Reconnaissance)</h2>
+  <table class="recon-table">
+    <thead>
+      <tr>
+        <th>Puerto</th>
+        <th>Servicio</th>
+        <th>Banner / Versión</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Reconnaissance}}
+      <tr>
+        <td>{{.Port}}</td>
+        <td class="service">{{.Service}}</td>
+        <td class="banner">{{.Banner}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+
+  <h2 class="section-title">Hallazgos de Seguridad (Vulnerabilities & Misconfigurations)</h2>
   {{range .Findings}}
   <div class="finding {{.Severity}}">
     <span class="badge {{.Severity}}">{{.SeverityLabel}}</span>

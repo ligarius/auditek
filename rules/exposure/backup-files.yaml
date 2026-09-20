@@ -10,9 +10,21 @@ http:
   - method: GET
     path:
       - "{{BaseURL}}/backup.sql"
-      - "{{BaseURL}}/backup.zip"
       - "{{BaseURL}}/db_backup.sql"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["INSERT ", "CREATE ", "SELECT "]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.zip"
       - "{{BaseURL}}/site-backup.zip"
     matchers:
       - type: status
         status: [200]
+      - type: regex
+        regex: ["^PK\\x03\\x04"]
+    matchers-condition: and

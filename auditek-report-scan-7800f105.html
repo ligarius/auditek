@@ -1,0 +1,949 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; margin: 0; padding: 40px; }
+  .header { border-bottom: 3px solid #0f3460; padding-bottom: 20px; margin-bottom: 30px; }
+  .header h1 { color: #0f3460; margin: 0; font-size: 28px; }
+  .header .meta { color: #666; font-size: 13px; margin-top: 8px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 30px; }
+  .summary-box { flex: 1; padding: 16px; border-radius: 8px; text-align: center; color: #fff; }
+  .critical { background: #b91c1c; }
+  .high { background: #ea580c; }
+  .medium { background: #ca8a04; }
+  .low { background: #4b5563; }
+  .info { background: #6b7280; }
+  .summary-box .count { font-size: 28px; font-weight: bold; display: block; }
+  .finding { border-left: 4px solid #ccc; padding: 14px 18px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 6px 6px 0; }
+  .finding.critical { border-color: #b91c1c; }
+  .finding.high { border-color: #ea580c; }
+  .finding.medium { border-color: #ca8a04; }
+  .finding.low { border-color: #4b5563; }
+  .finding.info { border-color: #9ca3af; }
+  .finding h3 { margin: 0 0 6px 0; font-size: 15px; }
+  .finding .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; margin-right: 8px; }
+  .finding .target { color: #444; font-size: 13px; font-family: monospace; }
+  .finding .impact { color: #333; font-size: 13px; margin-top: 8px; padding: 8px 10px; background: #fff7ed; border-left: 3px solid #ea580c; border-radius: 0 4px 4px 0; }
+  .finding .impact strong { color: #9a3412; }
+  .finding .evidence { background: #eee; padding: 8px; margin-top: 8px; font-family: monospace; font-size: 12px; border-radius: 4px; white-space: pre-wrap; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 13px; }
+  .footer strong { color: #0f3460; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Reporte de Auditoría de Seguridad</h1>
+    <div class="meta">
+      Target: https://biobio.cl/wp-config.php.bak &nbsp;|&nbsp; Fecha: 20-09-2026 12:47 &nbsp;|&nbsp; Scan ID: scan-7800f105
+    </div>
+  </div>
+
+  <div class="summary">
+    
+    <div class="summary-box critical">
+      <span class="count">4</span>
+      CRÍTICO
+    </div>
+    
+    <div class="summary-box high">
+      <span class="count">4</span>
+      ALTO
+    </div>
+    
+    <div class="summary-box medium">
+      <span class="count">14</span>
+      MEDIO
+    </div>
+    
+    <div class="summary-box low">
+      <span class="count">10</span>
+      BAJO
+    </div>
+    
+  </div>
+
+  <h2>Hallazgos Detallados</h2>
+  
+  <div class="finding critical">
+    <span class="badge critical">CRÍTICO</span>
+    <h3>Backup de wp-config.php expuesto</h3>
+    <div class="target">https://biobio.cl/wp-config.php.bak</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone credenciales de la base de datos de WordPress en texto plano — puede llevar a compromiso total del sitio y de los datos almacenados.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding critical">
+    <span class="badge critical">CRÍTICO</span>
+    <h3>Backup de wp-config.php expuesto</h3>
+    <div class="target">https://biobio.cl/wp-config.php.old</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone credenciales de la base de datos de WordPress en texto plano — puede llevar a compromiso total del sitio y de los datos almacenados.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding critical">
+    <span class="badge critical">CRÍTICO</span>
+    <h3>Backup de wp-config.php expuesto</h3>
+    <div class="target">https://biobio.cl/wp-config.php~</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone credenciales de la base de datos de WordPress en texto plano — puede llevar a compromiso total del sitio y de los datos almacenados.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding critical">
+    <span class="badge critical">CRÍTICO</span>
+    <h3>Escalada posible: secretos expuestos -&gt; acceso administrativo</h3>
+    <div class="target">múltiples hallazgos correlacionados — ver Riesgo</div>
+    <div class="impact"><strong>Riesgo:</strong> Se encontraron credenciales o secretos expuestos (Backup de wp-config.php expuesto) Y además Panel de administración accesible en el mismo sitio. Un atacante no necesita adivinar contraseñas: las credenciales filtradas podrían usarse directamente contra el panel encontrado para obtener control administrativo completo del sitio.</div>
+    <div class="evidence">Hallazgo derivado de correlación, no de una prueba directa — ver hallazgos individuales que lo componen.</div>
+  </div>
+  
+  <div class="finding high">
+    <span class="badge high">ALTO</span>
+    <h3>Archivo de backup expuesto</h3>
+    <div class="target">https://biobio.cl/backup.sql</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite descargar una copia completa de la base de datos o el código — expone datos de clientes, contraseñas hasheadas y lógica interna sin necesidad de explotar nada más.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding high">
+    <span class="badge high">ALTO</span>
+    <h3>Archivo de backup expuesto</h3>
+    <div class="target">https://biobio.cl/backup.zip</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite descargar una copia completa de la base de datos o el código — expone datos de clientes, contraseñas hasheadas y lógica interna sin necesidad de explotar nada más.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding high">
+    <span class="badge high">ALTO</span>
+    <h3>Archivo de backup expuesto</h3>
+    <div class="target">https://biobio.cl/db_backup.sql</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite descargar una copia completa de la base de datos o el código — expone datos de clientes, contraseñas hasheadas y lógica interna sin necesidad de explotar nada más.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding high">
+    <span class="badge high">ALTO</span>
+    <h3>Archivo de backup expuesto</h3>
+    <div class="target">https://biobio.cl/site-backup.zip</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite descargar una copia completa de la base de datos o el código — expone datos de clientes, contraseñas hasheadas y lógica interna sin necesidad de explotar nada más.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Panel de administración accesible</h3>
+    <div class="target">https://biobio.cl/phpmyadmin</div>
+    <div class="impact"><strong>Riesgo:</strong> Facilita ataques de fuerza bruta o de credenciales por defecto contra el panel de administración — si se compromete, el atacante controla todo el sitio.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Introspection de GraphQL habilitado</h3>
+    <div class="target">https://biobio.cl/graphql?query={__schema{types{name}}}</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite a un atacante mapear todo el esquema de datos interno (tablas, relaciones, campos), incluyendo posibles campos sensibles no destinados a exponerse.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.circleci/config.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Panel de administración accesible</h3>
+    <div class="target">https://biobio.cl/wp-admin</div>
+    <div class="impact"><strong>Riesgo:</strong> Facilita ataques de fuerza bruta o de credenciales por defecto contra el panel de administración — si se compromete, el atacante controla todo el sitio.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Panel de administración accesible</h3>
+    <div class="target">https://biobio.cl/admin</div>
+    <div class="impact"><strong>Riesgo:</strong> Facilita ataques de fuerza bruta o de credenciales por defecto contra el panel de administración — si se compromete, el atacante controla todo el sitio.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.github/workflows/build.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.github/workflows/deploy.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.github/workflows/main.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.github/workflows/ci.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/Jenkinsfile</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Scripts externos sin Subresource Integrity (SRI)</h3>
+    <div class="target">https://biobio.cl</div>
+    <div class="impact"><strong>Riesgo:</strong> Si el proveedor externo (CDN, librería de terceros) es comprometido, el script servido desde ahí se ejecutaría en el sitio sin ninguna verificación — es el vector de varios ataques de supply chain conocidos (ej. compromisos de CDN que afectaron miles de sitios simultáneamente).</div>
+    <div class="evidence">https://www.biobiochile.cl/assets/realtime.js?v=6
+https://cdn-cookieyes.com/client_data/950fc6eda55158efc2ad4d3e/script.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/bootstrap-vue.2556cd03.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/chunk-vendors.5b8e136d.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/escritorio-bbcl.bf35248b.js
+https://libs.biobiochile.cl/bbcl/lodash/lodash.min.js
+https://cdn.ampproject.org/amp-story-player-v0.js
+https://libs.biobiochile.cl/bbcl/swiper/11.1.4/swiper-bundle.min.js?v=1
+https://securepubads.g.doubleclick.net/tag/js/gpt.js
+//libs.biobiochile.cl/bbcl/axios-0.18.0/axios.min.js</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>El sitio no fuerza HTTPS</h3>
+    <div class="target">https://biobio.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite ataques de interceptación (man-in-the-middle) y downgrade — el tráfico entre el usuario y el sitio puede ser leído o modificado en tránsito.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.gitlab-ci.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Archivo de configuración de CI/CD expuesto</h3>
+    <div class="target">https://biobio.cl/.travis.yml</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela la topología del proceso de build/deploy (qué se ejecuta, en qué orden, contra qué servicios) — información de reconocimiento clave para un ataque de supply chain dirigido, y a veces contiene secretos mal manejados (tokens, credenciales de despliegue).</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Certificado TLS vence pronto</h3>
+    <div class="target">https://biobio.cl</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no se renueva a tiempo, el sitio quedará con un certificado vencido — riesgo operacional más que de seguridad, pero fácil de prevenir.</div>
+    <div class="evidence">Vence el 2026-09-21</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Documentación de API expuesta</h3>
+    <div class="target">https://biobio.cl/swagger.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone la estructura completa de la API (endpoints, parámetros, modelos de datos) — facilita que un atacante mapee la superficie de ataque sin necesidad de fuerza bruta.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Documentación de API expuesta</h3>
+    <div class="target">https://biobio.cl/api-docs</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone la estructura completa de la API (endpoints, parámetros, modelos de datos) — facilita que un atacante mapee la superficie de ataque sin necesidad de fuerza bruta.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Documentación de API expuesta</h3>
+    <div class="target">https://biobio.cl/swagger-ui.html</div>
+    <div class="impact"><strong>Riesgo:</strong> Expone la estructura completa de la API (endpoints, parámetros, modelos de datos) — facilita que un atacante mapee la superficie de ataque sin necesidad de fuerza bruta.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Manifiesto de dependencias expuesto</h3>
+    <div class="target">https://biobio.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela las versiones exactas de las librerías usadas, permitiendo a un atacante buscar vulnerabilidades conocidas (CVEs) específicas de esas versiones.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Manifiesto de dependencias expuesto</h3>
+    <div class="target">https://biobio.cl/composer.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela las versiones exactas de las librerías usadas, permitiendo a un atacante buscar vulnerabilidades conocidas (CVEs) específicas de esas versiones.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Content-Security-Policy ausente</h3>
+    <div class="target">https://biobio.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Sin CSP, un ataque XSS exitoso tiene impacto total (puede ejecutar cualquier script) en vez de ser mitigado por la política del navegador.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/admin/login</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/wp-login.php</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/login</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+
+  <div class="footer">
+    Auditoría generada con <strong>Auditek</strong><br>
+    Servicios de ciberseguridad · [tu nombre] · [tu contacto]
+  </div>
+</body>
+</html>

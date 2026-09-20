@@ -9,9 +9,24 @@ type: http
 http:
   - method: GET
     path:
-      - "{{BaseURL}}/swagger-ui.html"
-      - "{{BaseURL}}/api-docs"
       - "{{BaseURL}}/swagger.json"
+      - "{{BaseURL}}/api-docs"
     matchers:
       - type: status
         status: [200]
+      - type: word
+        part: body
+        words: ["swagger", "paths", "components"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/swagger-ui.html"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["swagger", "SwaggerUIBundle", "url:"]
+        condition: and
+    matchers-condition: and

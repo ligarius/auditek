@@ -22,6 +22,7 @@ type FindingView struct {
 }
 
 type ReportData struct {
+	HasReconnaissance bool
 	Target       string
 	Date         string
 	ScanID       string
@@ -58,6 +59,7 @@ func BuildReportData(scanID, target string, fs []findings.Finding, brandContact 
 	}
 
 	return ReportData{
+		HasReconnaissance: false,
 		Target:       target,
 		Date:         time.Now().Format("02-01-2006 15:04"),
 		ScanID:       scanID,

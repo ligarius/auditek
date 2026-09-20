@@ -1,0 +1,29 @@
+EN runWebScan, después de: if err := store.SaveFindings(scanID, toSave); err != nil {
+
+AGREGAR ANTES de: fmt.Printf("Escaneo completo...
+
+	// Mostrar hallazgos en pantalla
+	displayFindings(toSave)
+
+	// Ofrecer exportar HTML
+	if promptExportHTML(scanID) {
+		if err := exportHTMLReport(scanID, toSave); err != nil {
+			fmt.Printf("Error exportando HTML: %v\n", err)
+		}
+	}
+
+---
+
+EN runNetworkScan, después de: if err := store.SaveFindings(scanID, toSave); err != nil {
+
+AGREGAR ANTES de: fmt.Printf("Escaneo completo...
+
+	// Mostrar hallazgos en pantalla
+	displayFindings(toSave)
+
+	// Ofrecer exportar HTML
+	if promptExportHTML(scanID) {
+		if err := exportHTMLReport(scanID, toSave); err != nil {
+			fmt.Printf("Error exportando HTML: %v\n", err)
+		}
+	}

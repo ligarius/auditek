@@ -18,4 +18,5 @@ http:
         status: [200]
       - type: word
         part: body
-        words: ["require", "\"name\":"]
+        words: ["\"name\":", "\"version\":", "dependencies"]
+        condition: and

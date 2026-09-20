@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; margin: 0; padding: 40px; }
+  .header { border-bottom: 3px solid #0f3460; padding-bottom: 20px; margin-bottom: 30px; }
+  .header h1 { color: #0f3460; margin: 0; font-size: 28px; }
+  .header .meta { color: #666; font-size: 13px; margin-top: 8px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 30px; }
+  .summary-box { flex: 1; padding: 16px; border-radius: 8px; text-align: center; color: #fff; }
+  .critical { background: #b91c1c; }
+  .high { background: #ea580c; }
+  .medium { background: #ca8a04; }
+  .low { background: #4b5563; }
+  .info { background: #6b7280; }
+  .summary-box .count { font-size: 28px; font-weight: bold; display: block; }
+  .finding { border-left: 4px solid #ccc; padding: 14px 18px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 6px 6px 0; }
+  .finding.critical { border-color: #b91c1c; }
+  .finding.high { border-color: #ea580c; }
+  .finding.medium { border-color: #ca8a04; }
+  .finding.low { border-color: #4b5563; }
+  .finding.info { border-color: #9ca3af; }
+  .finding h3 { margin: 0 0 6px 0; font-size: 15px; }
+  .finding .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; margin-right: 8px; }
+  .finding .target { color: #444; font-size: 13px; font-family: monospace; }
+  .finding .impact { color: #333; font-size: 13px; margin-top: 8px; padding: 8px 10px; background: #fff7ed; border-left: 3px solid #ea580c; border-radius: 0 4px 4px 0; }
+  .finding .impact strong { color: #9a3412; }
+  .finding .evidence { background: #eee; padding: 8px; margin-top: 8px; font-family: monospace; font-size: 12px; border-radius: 4px; white-space: pre-wrap; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 13px; }
+  .footer strong { color: #0f3460; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Reporte de Auditoría de Seguridad</h1>
+    <div class="meta">
+      Target: https://biobio.cl &nbsp;|&nbsp; Fecha: 20-09-2026 13:16 &nbsp;|&nbsp; Scan ID: scan-c80f33b2
+    </div>
+  </div>
+
+  <div class="summary">
+    
+    <div class="summary-box medium">
+      <span class="count">3</span>
+      MEDIO
+    </div>
+    
+    <div class="summary-box low">
+      <span class="count">5</span>
+      BAJO
+    </div>
+    
+  </div>
+
+  <h2>Hallazgos Detallados</h2>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Scripts externos sin Subresource Integrity (SRI)</h3>
+    <div class="target">https://biobio.cl</div>
+    <div class="impact"><strong>Riesgo:</strong> Si el proveedor externo (CDN, librería de terceros) es comprometido, el script servido desde ahí se ejecutaría en el sitio sin ninguna verificación — es el vector de varios ataques de supply chain conocidos (ej. compromisos de CDN que afectaron miles de sitios simultáneamente).</div>
+    <div class="evidence">https://www.biobiochile.cl/assets/realtime.js?v=6
+https://cdn-cookieyes.com/client_data/950fc6eda55158efc2ad4d3e/script.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/bootstrap-vue.2556cd03.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/chunk-vendors.5b8e136d.js
+https://libs.biobiochile.cl/bbcl/bbcl-2020/js/escritorio-bbcl.bf35248b.js
+https://libs.biobiochile.cl/bbcl/lodash/lodash.min.js
+https://cdn.ampproject.org/amp-story-player-v0.js
+https://libs.biobiochile.cl/bbcl/swiper/11.1.4/swiper-bundle.min.js?v=1
+https://securepubads.g.doubleclick.net/tag/js/gpt.js
+//libs.biobiochile.cl/bbcl/axios-0.18.0/axios.min.js</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>El sitio no fuerza HTTPS</h3>
+    <div class="target">https://biobio.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite ataques de interceptación (man-in-the-middle) y downgrade — el tráfico entre el usuario y el sitio puede ser leído o modificado en tránsito.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Introspection de GraphQL habilitado</h3>
+    <div class="target">https://biobio.cl/graphql?query={__schema{types{name}}}</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite a un atacante mapear todo el esquema de datos interno (tablas, relaciones, campos), incluyendo posibles campos sensibles no destinados a exponerse.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Certificado TLS vence pronto</h3>
+    <div class="target">https://biobio.cl</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no se renueva a tiempo, el sitio quedará con un certificado vencido — riesgo operacional más que de seguridad, pero fácil de prevenir.</div>
+    <div class="evidence">Vence el 2026-09-21</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/login</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/wp-login.php</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Login sin señales de protección anti-fuerza-bruta</h3>
+    <div class="target">https://biobio.cl/admin/login</div>
+    <div class="impact"><strong>Riesgo:</strong> Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Content-Security-Policy ausente</h3>
+    <div class="target">https://biobio.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Sin CSP, un ataque XSS exitoso tiene impacto total (puede ejecutar cualquier script) en vez de ser mitigado por la política del navegador.</div>
+    <div class="evidence">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+    &lt;meta charset=&#34;utf-8&#34; /&gt;
+    &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt;
+    &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width...</div>
+  </div>
+  
+
+  <div class="footer">
+    Auditoría generada con <strong>Auditek</strong><br>
+    Servicios de ciberseguridad · [tu nombre] · [tu contacto]
+  </div>
+</body>
+</html>

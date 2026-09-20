@@ -3,15 +3,41 @@ info:
   name: "Panel de administración accesible"
   severity: medium
   tags: [exposure, admin]
-  description: "Panel de administración detectado sin protección aparente"
+  description: "Paneles de administración accesibles sin autenticación"
   impact: "Facilita ataques de fuerza bruta o de credenciales por defecto contra el panel de administración — si se compromete, el atacante controla todo el sitio."
 type: http
 http:
   - method: GET
     path:
-      - "{{BaseURL}}/admin"
       - "{{BaseURL}}/wp-admin"
+      - "{{BaseURL}}/wp-login.php"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["wp-", "login", "WordPress"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
       - "{{BaseURL}}/phpmyadmin"
     matchers:
       - type: status
         status: [200]
+      - type: word
+        part: body
+        words: ["phpMyAdmin", "MySQL"]
+        condition: and
+    matchers-condition: and
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/admin/login"
+    matchers:
+      - type: status
+        status: [200]
+      - type: regex
+        part: body
+        regex: ["<form[^>]*method[^>]*post", "<input[^>]*name[^>]*(username|password|login)"]
+    matchers-condition: and

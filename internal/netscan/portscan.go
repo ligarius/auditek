@@ -18,12 +18,14 @@ type PortResult struct {
 type ScanOptions struct {
 	Timeout     time.Duration
 	Concurrency int
+	ProgressFn  func(completed, total int) // Callback para mostrar progreso
 }
 
 func DefaultOptions() ScanOptions {
 	return ScanOptions{
 		Timeout:     2 * time.Second,
 		Concurrency: 100,
+		ProgressFn:  nil,
 	}
 }
 
@@ -33,6 +35,8 @@ func ScanHost(host string, ports []int, opts ScanOptions) []PortResult {
 	var wg sync.WaitGroup
 
 	sem := make(chan struct{}, opts.Concurrency)
+	completed := 0
+	total := len(ports)
 
 	for _, port := range ports {
 		wg.Add(1)
@@ -46,6 +50,14 @@ func ScanHost(host string, ports []int, opts ScanOptions) []PortResult {
 			if r.Open {
 				mu.Lock()
 				results = append(results, r)
+				mu.Unlock()
+			}
+
+			// Actualizar progreso
+			if opts.ProgressFn != nil {
+				mu.Lock()
+				completed++
+				opts.ProgressFn(completed, total)
 				mu.Unlock()
 			}
 		}(port)
