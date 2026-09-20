@@ -1,0 +1,17 @@
+id: exposed-api-docs
+info:
+  name: "Documentación de API expuesta"
+  severity: low
+  tags: [exposure, api]
+  description: "Documentación Swagger/OpenAPI accesible"
+  impact: "Expone la estructura completa de la API (endpoints, parámetros, modelos de datos) — facilita que un atacante mapee la superficie de ataque sin necesidad de fuerza bruta."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/swagger-ui.html"
+      - "{{BaseURL}}/api-docs"
+      - "{{BaseURL}}/swagger.json"
+    matchers:
+      - type: status
+        status: [200]

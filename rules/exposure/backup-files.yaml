@@ -1,0 +1,18 @@
+id: exposed-backup-files
+info:
+  name: "Archivo de backup expuesto"
+  severity: high
+  tags: [exposure, backup]
+  description: "Backups de base de datos o código accesibles públicamente"
+  impact: "Permite descargar una copia completa de la base de datos o el código — expone datos de clientes, contraseñas hasheadas y lógica interna sin necesidad de explotar nada más."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.sql"
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/db_backup.sql"
+      - "{{BaseURL}}/site-backup.zip"
+    matchers:
+      - type: status
+        status: [200]

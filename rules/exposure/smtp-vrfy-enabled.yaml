@@ -1,0 +1,18 @@
+id: smtp-vrfy-enabled
+info:
+  name: "Comando VRFY habilitado en SMTP"
+  severity: low
+  cwe: ["CWE-200"]
+  tags: [exposure, smtp, recon]
+  description: "El servidor SMTP responde al comando VRFY, permitiendo confirmar si una dirección de correo existe"
+  impact: "Facilita a un atacante enumerar direcciones de correo válidas de la organización, información clave para campañas de phishing dirigido o ataques de fuerza bruta contra cuentas específicas."
+type: tcp
+tcp:
+  - port: 25
+    timeout_ms: 3000
+    steps:
+      - send: ""
+      - send: "VRFY root\r\n"
+    matchers:
+      - type: regex
+        regex: ["\\r\\n25[02] "]

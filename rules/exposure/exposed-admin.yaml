@@ -1,0 +1,17 @@
+id: exposed-admin-panel
+info:
+  name: "Panel de administración accesible"
+  severity: medium
+  tags: [exposure, admin]
+  description: "Panel de administración detectado sin protección aparente"
+  impact: "Facilita ataques de fuerza bruta o de credenciales por defecto contra el panel de administración — si se compromete, el atacante controla todo el sitio."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/wp-admin"
+      - "{{BaseURL}}/phpmyadmin"
+    matchers:
+      - type: status
+        status: [200]

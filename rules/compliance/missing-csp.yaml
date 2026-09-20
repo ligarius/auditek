@@ -1,0 +1,17 @@
+id: missing-csp-header
+info:
+  name: "Content-Security-Policy ausente"
+  severity: low
+  cwe: ["CWE-1021"]
+  tags: [compliance, headers]
+  description: "El sitio no implementa CSP, aumentando el riesgo de ataques XSS"
+  impact: "Sin CSP, un ataque XSS exitoso tiene impacto total (puede ejecutar cualquier script) en vez de ser mitigado por la política del navegador."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/"]
+    matchers:
+      - type: word
+        part: header
+        words: ["Content-Security-Policy"]
+        negative: true

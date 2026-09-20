@@ -1,0 +1,17 @@
+id: verbose-error-disclosure
+info:
+  name: "Mensajes de error detallados expuestos"
+  severity: medium
+  cwe: ["CWE-209"]
+  tags: [exposure, thirdparty]
+  description: "El sitio revela stack traces o rutas internas en mensajes de error"
+  impact: "Revela rutas internas, versiones de framework y estructura de la aplicación — información de reconocimiento que facilita ataques dirigidos posteriores."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/nonexistent-page-xyz123"]
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words: ["stack trace", "at System.", "Warning: mysql_", "Fatal error:", "Traceback (most recent"]

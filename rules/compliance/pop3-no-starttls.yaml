@@ -1,0 +1,19 @@
+id: pop3-no-starttls
+info:
+  name: "POP3 sin soporte STARTTLS"
+  severity: medium
+  cwe: ["CWE-319"]
+  tags: [compliance, pop3, tls]
+  description: "El servidor POP3 no anuncia soporte para STARTTLS, lo que sugiere que las credenciales viajan en texto plano"
+  impact: "Sin STARTTLS, usuario y contraseña de correo se transmiten sin cifrar — cualquiera que intercepte el tráfico de red (WiFi público, red interna comprometida) puede capturar las credenciales directamente."
+type: tcp
+tcp:
+  - port: 110
+    timeout_ms: 3000
+    steps:
+      - send: ""
+      - send: "CAPA\r\n"
+    matchers:
+      - type: word
+        words: ["STLS"]
+        negative: true

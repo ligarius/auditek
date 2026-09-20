@@ -1,0 +1,18 @@
+id: directory-listing-enabled
+info:
+  name: "Listado de directorios habilitado"
+  severity: medium
+  tags: [exposure, misconfig]
+  description: "El servidor expone el contenido de directorios sin un índice"
+  impact: "Revela la estructura de archivos del servidor, facilitando que un atacante encuentre archivos sensibles no destinados a ser públicos (backups, configs, código fuente)."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/uploads/", "{{BaseURL}}/files/", "{{BaseURL}}/backup/"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["Index of /"]

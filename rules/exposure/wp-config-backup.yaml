@@ -1,0 +1,18 @@
+id: exposed-wp-config-bak
+info:
+  name: "Backup de wp-config.php expuesto"
+  severity: critical
+  cwe: ["CWE-200", "CWE-538"]
+  tags: [exposure, wordpress, secrets]
+  description: "Backup del archivo de configuración de WordPress accesible"
+  impact: "Expone credenciales de la base de datos de WordPress en texto plano — puede llevar a compromiso total del sitio y de los datos almacenados."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/wp-config.php.bak"
+      - "{{BaseURL}}/wp-config.php.old"
+      - "{{BaseURL}}/wp-config.php~"
+    matchers:
+      - type: status
+        status: [200]

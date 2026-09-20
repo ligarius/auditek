@@ -1,0 +1,16 @@
+id: memcached-exposed
+info:
+  name: "Memcached accesible sin autenticación"
+  severity: high
+  cwe: ["CWE-306"]
+  tags: [exposure, database, tcp]
+  description: "Instancia de Memcached responde a comandos de estadísticas sin autenticación"
+  impact: "Expone contenido cacheado (potencialmente datos de sesión o consultas de negocio) y puede usarse como amplificador en ataques DDoS de reflexión UDP si el puerto UDP también está abierto."
+type: tcp
+tcp:
+  - port: 11211
+    data: "stats\r\n"
+    timeout_ms: 2000
+    matchers:
+      - type: word
+        words: ["STAT pid", "STAT uptime"]

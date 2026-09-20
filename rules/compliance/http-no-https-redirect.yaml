@@ -1,0 +1,15 @@
+id: http-not-redirecting-https
+info:
+  name: "El sitio no fuerza HTTPS"
+  severity: medium
+  cwe: ["CWE-319"]
+  tags: [compliance, tls]
+  description: "El sitio permite navegación sobre HTTP sin redirigir a HTTPS"
+  impact: "Permite ataques de interceptación (man-in-the-middle) y downgrade — el tráfico entre el usuario y el sitio puede ser leído o modificado en tránsito."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/"]
+    matchers:
+      - type: status
+        status: [200]

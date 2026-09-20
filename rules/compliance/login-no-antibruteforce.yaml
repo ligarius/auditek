@@ -1,0 +1,23 @@
+id: login-no-bruteforce-protection
+info:
+  name: "Login sin señales de protección anti-fuerza-bruta"
+  severity: low
+  cwe: ["CWE-307"]
+  tags: [compliance, auth, heuristic]
+  description: "La página de login no muestra indicios de CAPTCHA ni otras protecciones anti-automatización (heurística basada en el contenido de la página, no confirma ni descarta protecciones a nivel de servidor/WAF)"
+  impact: "Si no hay protección visible contra intentos automatizados, un atacante podría probar muchas combinaciones de usuario/contraseña sin fricción. Nota: esto es una heurística sobre el HTML de la página — un WAF o rate-limiting a nivel de servidor podría existir igual sin ser visible aquí."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/login"
+      - "{{BaseURL}}/wp-login.php"
+      - "{{BaseURL}}/admin/login"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["recaptcha", "hcaptcha", "turnstile", "captcha", "g-recaptcha"]
+        negative: true

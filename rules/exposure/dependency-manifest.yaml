@@ -1,0 +1,21 @@
+id: exposed-composer-json
+info:
+  name: "Manifiesto de dependencias expuesto"
+  severity: low
+  cwe: ["CWE-200"]
+  tags: [exposure, dependencies]
+  description: "Archivo composer.json o package.json accesible, revela stack tecnológico"
+  impact: "Revela las versiones exactas de las librerías usadas, permitiendo a un atacante buscar vulnerabilidades conocidas (CVEs) específicas de esas versiones."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/composer.json"
+      - "{{BaseURL}}/package.json"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["require", "\"name\":"]

@@ -1,0 +1,17 @@
+# Binarios
+auditek
+auditek.exe
+*.o
+*.a
+
+# Base de datos local
+.auditek/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Sistema
+.DS_Store
+Thumbs.db

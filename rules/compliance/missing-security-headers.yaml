@@ -1,0 +1,16 @@
+id: missing-security-headers
+info:
+  name: "Headers de seguridad faltantes"
+  severity: low
+  tags: [compliance, headers]
+  description: "El sitio no implementa HSTS"
+  impact: "Aumenta el riesgo de ataques de downgrade (HTTP en vez de HTTPS) y clickjacking/MITM en redes no confiables (WiFi público) al no forzar conexiones seguras."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/"]
+    matchers:
+      - type: word
+        part: header
+        words: ["Strict-Transport-Security"]
+        negative: true

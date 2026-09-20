@@ -1,0 +1,22 @@
+id: exposed-phpinfo
+info:
+  name: "phpinfo() expuesto"
+  severity: high
+  cwe: ["CWE-200"]
+  tags: [exposure, misconfig]
+  description: "Página de información de PHP accesible"
+  impact: "Revela versión de PHP, módulos instalados, rutas del sistema de archivos y variables de entorno — información clave para preparar un ataque dirigido."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/phpinfo.php"
+      - "{{BaseURL}}/info.php"
+      - "{{BaseURL}}/test.php"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["phpinfo()", "PHP Version"]

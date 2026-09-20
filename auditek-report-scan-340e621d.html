@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; margin: 0; padding: 40px; }
+  .header { border-bottom: 3px solid #0f3460; padding-bottom: 20px; margin-bottom: 30px; }
+  .header h1 { color: #0f3460; margin: 0; font-size: 28px; }
+  .header .meta { color: #666; font-size: 13px; margin-top: 8px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 30px; }
+  .summary-box { flex: 1; padding: 16px; border-radius: 8px; text-align: center; color: #fff; }
+  .critical { background: #b91c1c; }
+  .high { background: #ea580c; }
+  .medium { background: #ca8a04; }
+  .low { background: #4b5563; }
+  .info { background: #6b7280; }
+  .summary-box .count { font-size: 28px; font-weight: bold; display: block; }
+  .finding { border-left: 4px solid #ccc; padding: 14px 18px; margin-bottom: 12px; background: #f9fafb; border-radius: 0 6px 6px 0; }
+  .finding.critical { border-color: #b91c1c; }
+  .finding.high { border-color: #ea580c; }
+  .finding.medium { border-color: #ca8a04; }
+  .finding.low { border-color: #4b5563; }
+  .finding.info { border-color: #9ca3af; }
+  .finding h3 { margin: 0 0 6px 0; font-size: 15px; }
+  .finding .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; margin-right: 8px; }
+  .finding .target { color: #444; font-size: 13px; font-family: monospace; }
+  .finding .impact { color: #333; font-size: 13px; margin-top: 8px; padding: 8px 10px; background: #fff7ed; border-left: 3px solid #ea580c; border-radius: 0 4px 4px 0; }
+  .finding .impact strong { color: #9a3412; }
+  .finding .evidence { background: #eee; padding: 8px; margin-top: 8px; font-family: monospace; font-size: 12px; border-radius: 4px; white-space: pre-wrap; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 13px; }
+  .footer strong { color: #0f3460; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Reporte de Auditoría de Seguridad</h1>
+    <div class="meta">
+      Target: https://lussocalzature.cl &nbsp;|&nbsp; Fecha: 20-09-2026 11:37 &nbsp;|&nbsp; Scan ID: scan-340e621d
+    </div>
+  </div>
+
+  <div class="summary">
+    
+    <div class="summary-box medium">
+      <span class="count">2</span>
+      MEDIO
+    </div>
+    
+    <div class="summary-box low">
+      <span class="count">9</span>
+      BAJO
+    </div>
+    
+  </div>
+
+  <h2>Hallazgos Detallados</h2>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>Scripts externos sin Subresource Integrity (SRI)</h3>
+    <div class="target">https://lussocalzature.cl</div>
+    <div class="impact"><strong>Riesgo:</strong> Si el proveedor externo (CDN, librería de terceros) es comprometido, el script servido desde ahí se ejecutaría en el sitio sin ninguna verificación — es el vector de varios ataques de supply chain conocidos (ej. compromisos de CDN que afectaron miles de sitios simultáneamente).</div>
+    <div class="evidence">https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2</div>
+  </div>
+  
+  <div class="finding medium">
+    <span class="badge medium">MEDIO</span>
+    <h3>El sitio no fuerza HTTPS</h3>
+    <div class="target">https://lussocalzature.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Permite ataques de interceptación (man-in-the-middle) y downgrade — el tráfico entre el usuario y el sitio puede ser leído o modificado en tránsito.</div>
+    <div class="evidence">&lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+&lt;meta charset=&#34;UTF-8&#34;&gt;
+&lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34;&gt;
+&lt;title&gt;Lusso Calzature · Calzado de Dama&lt;/title&gt;
+&lt;link rel=&#34;icon&#34;...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^2.8.5) permite que se instale automáticamente una versión futura de cors sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;cors&#34;: &#34;^2.8.5&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^4.21.2) permite que se instale automáticamente una versión futura de express sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;express&#34;: &#34;^4.21.2&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^7.4.1) permite que se instale automáticamente una versión futura de express-rate-limit sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;express-rate-limit&#34;: &#34;^7.4.1&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^8.0.0) permite que se instale automáticamente una versión futura de helmet sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;helmet&#34;: &#34;^8.0.0&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^2.0.15) permite que se instale automáticamente una versión futura de mercadopago sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;mercadopago&#34;: &#34;^2.0.15&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Dependencia sin versión fijada</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Una constraint de versión suelta (^4.0.0) permite que se instale automáticamente una versión futura de resend sin revisión — si esa versión futura resulta comprometida (ataque de supply chain) o tiene una vulnerabilidad nueva, el proyecto la hereda sin que nadie lo note explícitamente.</div>
+    <div class="evidence">/package.json: &#34;resend&#34;: &#34;^4.0.0&#34;</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Content-Security-Policy ausente</h3>
+    <div class="target">https://lussocalzature.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Sin CSP, un ataque XSS exitoso tiene impacto total (puede ejecutar cualquier script) en vez de ser mitigado por la política del navegador.</div>
+    <div class="evidence">&lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+&lt;meta charset=&#34;UTF-8&#34;&gt;
+&lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34;&gt;
+&lt;title&gt;Lusso Calzature · Calzado de Dama&lt;/title&gt;
+&lt;link rel=&#34;icon&#34;...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Headers de seguridad faltantes</h3>
+    <div class="target">https://lussocalzature.cl/</div>
+    <div class="impact"><strong>Riesgo:</strong> Aumenta el riesgo de ataques de downgrade (HTTP en vez de HTTPS) y clickjacking/MITM en redes no confiables (WiFi público) al no forzar conexiones seguras.</div>
+    <div class="evidence">&lt;!DOCTYPE html&gt;
+&lt;html lang=&#34;es&#34;&gt;
+&lt;head&gt;
+&lt;meta charset=&#34;UTF-8&#34;&gt;
+&lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34;&gt;
+&lt;title&gt;Lusso Calzature · Calzado de Dama&lt;/title&gt;
+&lt;link rel=&#34;icon&#34;...</div>
+  </div>
+  
+  <div class="finding low">
+    <span class="badge low">BAJO</span>
+    <h3>Manifiesto de dependencias expuesto</h3>
+    <div class="target">https://lussocalzature.cl/package.json</div>
+    <div class="impact"><strong>Riesgo:</strong> Revela las versiones exactas de las librerías usadas, permitiendo a un atacante buscar vulnerabilidades conocidas (CVEs) específicas de esas versiones.</div>
+    <div class="evidence">{
+  &#34;name&#34;: &#34;lusso-backend&#34;,
+  &#34;version&#34;: &#34;1.0.0&#34;,
+  &#34;description&#34;: &#34;Backend de pagos para Lusso Calzature con Mercado Pago Checkout Pro&#34;,
+  &#34;type&#34;: &#34;module&#34;,
+  &#34;main&#34;: &#34;server.js&#34;,
+  &#34;scripts&#34;: {
+   ...</div>
+  </div>
+  
+
+  <div class="footer">
+    Auditoría generada con <strong>Auditek</strong><br>
+    Servicios de ciberseguridad · [tu nombre] · [tu contacto]
+  </div>
+</body>
+</html>

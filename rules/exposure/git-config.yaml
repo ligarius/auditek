@@ -1,0 +1,19 @@
+id: exposed-git-config
+info:
+  name: "Archivo .git/config expuesto"
+  severity: high
+  cwe: ["CWE-200"]
+  tags: [exposure, git]
+  description: "El repositorio Git del sitio es accesible públicamente"
+  impact: "Permite reconstruir el código fuente completo del sitio, incluyendo lógica de negocio y, potencialmente, credenciales o claves API hardcodeadas — ataque de reconocimiento y robo de información."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/.git/config"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["[core]", "repositoryformatversion"]

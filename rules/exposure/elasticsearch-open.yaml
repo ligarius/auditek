@@ -1,0 +1,19 @@
+id: exposed-elasticsearch
+info:
+  name: "Elasticsearch accesible sin autenticación"
+  severity: critical
+  cwe: ["CWE-306"]
+  tags: [exposure, database]
+  description: "Instancia de Elasticsearch expuesta sin autenticación"
+  impact: "Acceso de lectura y escritura sin autenticación a todos los datos indexados — puede exponer información de clientes o permitir borrar/corromper datos."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}:9200/_cluster/health"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["cluster_name", "status"]

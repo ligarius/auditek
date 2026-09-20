@@ -1,0 +1,19 @@
+id: default-credentials-page
+info:
+  name: "Página de login con credenciales por defecto visibles"
+  severity: medium
+  cwe: ["CWE-521"]
+  tags: [compliance, credentials]
+  description: "La página de login expone pistas de credenciales por defecto"
+  impact: "Facilita ataques de credential stuffing o fuerza bruta al confirmar públicamente qué credenciales por defecto podrían no haber sido cambiadas."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/login", "{{BaseURL}}/admin/login"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["default password", "admin/admin", "usuario por defecto"]

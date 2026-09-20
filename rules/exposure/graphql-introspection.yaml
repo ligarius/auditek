@@ -1,0 +1,19 @@
+id: exposed-graphql-introspection
+info:
+  name: "Introspection de GraphQL habilitado"
+  severity: medium
+  cwe: ["CWE-200"]
+  tags: [exposure, api]
+  description: "El endpoint GraphQL permite introspection en producción"
+  impact: "Permite a un atacante mapear todo el esquema de datos interno (tablas, relaciones, campos), incluyendo posibles campos sensibles no destinados a exponerse."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/graphql?query={__schema{types{name}}}"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["__schema", "types"]

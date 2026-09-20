@@ -1,0 +1,16 @@
+id: insecure-cookie-flags
+info:
+  name: "Cookies sin flags de seguridad"
+  severity: medium
+  cwe: ["CWE-614", "CWE-1004"]
+  tags: [compliance, cookies]
+  description: "Cookies de sesión sin flags Secure/HttpOnly"
+  impact: "Las cookies de sesión pueden ser robadas vía XSS (sin HttpOnly) o interceptadas en redes no cifradas (sin Secure) — permite secuestro de sesión (session hijacking)."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/"]
+    matchers:
+      - type: word
+        part: header
+        words: ["Set-Cookie"]

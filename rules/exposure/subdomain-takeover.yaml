@@ -1,0 +1,21 @@
+id: subdomain-takeover-hint
+info:
+  name: "Posible subdomain takeover"
+  severity: high
+  cwe: ["CWE-350"]
+  tags: [exposure, dns]
+  description: "El subdominio apunta a un servicio de terceros que puede no estar reclamado"
+  impact: "Un atacante puede reclamar el servicio de terceros abandonado y servir contenido malicioso (phishing, malware) bajo un subdominio legítimo de la empresa."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/"]
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "NoSuchBucket"
+          - "There isn't a GitHub Pages site here"
+          - "No such app"
+          - "herokucdn.com/error-pages/no-such-app.html"

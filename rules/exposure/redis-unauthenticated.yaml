@@ -1,0 +1,16 @@
+id: redis-unauthenticated
+info:
+  name: "Redis accesible sin autenticación"
+  severity: critical
+  cwe: ["CWE-306"]
+  tags: [exposure, database, tcp]
+  description: "Instancia de Redis responde a comandos sin requerir contraseña"
+  impact: "Acceso de lectura y escritura total a los datos almacenados — un atacante puede leer información sensible, borrar datos, o en configuraciones vulnerables, escribir archivos en el servidor (ej. cron jobs, claves SSH) para ejecutar código."
+type: tcp
+tcp:
+  - port: 6379
+    data: "PING\r\n"
+    timeout_ms: 2000
+    matchers:
+      - type: word
+        words: ["+PONG"]

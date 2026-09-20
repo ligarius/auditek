@@ -1,0 +1,22 @@
+id: exposed-ssh-key
+info:
+  name: "Clave SSH privada expuesta"
+  severity: critical
+  cwe: ["CWE-200", "CWE-522"]
+  tags: [exposure, secrets, credentials]
+  description: "Clave privada SSH accesible públicamente"
+  impact: "Otorga acceso directo por SSH al servidor si la clave no tiene passphrase — compromiso completo del servidor sin necesidad de explotar ninguna otra vulnerabilidad."
+type: http
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/id_rsa"
+      - "{{BaseURL}}/.ssh/id_rsa"
+      - "{{BaseURL}}/key.pem"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["PRIVATE KEY"]

@@ -1,0 +1,19 @@
+id: ftp-anonymous-login
+info:
+  name: "Login anónimo FTP habilitado"
+  severity: high
+  cwe: ["CWE-287", "CWE-521"]
+  tags: [exposure, ftp, credentials]
+  description: "El servidor FTP acepta login con usuario 'anonymous' sin contraseña real"
+  impact: "Cualquiera puede autenticarse y, dependiendo de los permisos configurados, leer o incluso escribir archivos en el servidor sin credenciales — puede exponer datos o servir como punto de entrada para subir contenido malicioso."
+type: tcp
+tcp:
+  - port: 21
+    timeout_ms: 3000
+    steps:
+      - send: ""
+      - send: "USER anonymous\r\n"
+      - send: "PASS anonymous@example.com\r\n"
+    matchers:
+      - type: word
+        words: ["230"]

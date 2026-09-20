@@ -1,0 +1,19 @@
+id: exposed-env-file
+info:
+  name: "Archivo .env expuesto"
+  severity: critical
+  cwe: ["CWE-200", "CWE-538"]
+  tags: [exposure, secrets]
+  description: "Archivo de configuración con posibles credenciales accesible públicamente"
+  impact: "Expone credenciales de base de datos, API keys y secretos directamente — puede llevar a toma total del backend, robo de datos de clientes, o pivoteo hacia otros sistemas conectados."
+type: http
+http:
+  - method: GET
+    path: ["{{BaseURL}}/.env"]
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        part: body
+        words: ["DB_PASSWORD", "API_KEY", "SECRET", "DATABASE_URL"]
