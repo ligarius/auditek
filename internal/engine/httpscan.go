@@ -6,14 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
 type HTTPScanner struct {
-	Rules   []Rule
-	Client  *http.Client
-	DelayMs int // pausa entre requests, en milisegundos (0 = sin límite)
+	Rules  []Rule
+	Client *http.Client
+	// NoRedirectClient se usa para requests marcadas con no_follow_redirects:
+	// true — devuelve la respuesta 3xx cruda en vez de seguir la cadena de
+	// redirects, para reglas que necesitan observar el primer salto tal cual
+	// (ej. confirmar que HTTP realmente redirige a HTTPS).
+	NoRedirectClient *http.Client
+	DelayMs          int // pausa entre requests, en milisegundos (0 = sin límite)
 	// Headers se agregan a CADA request del scan — pensado para autenticación
 	// (ej. "Cookie: session=...", "Authorization: Bearer ...") en sitios que
 	// no son públicos o que requieren estar logueado para ver ciertas rutas.
@@ -21,14 +27,22 @@ type HTTPScanner struct {
 }
 
 func NewHTTPScanner(rules []Rule, delayMs int, headers map[string]string) *HTTPScanner {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	return &HTTPScanner{
 		Rules:   rules,
 		DelayMs: delayMs,
 		Headers: headers,
 		Client: &http.Client{
-			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			Timeout:   10 * time.Second,
+			Transport: transport,
+		},
+		NoRedirectClient: &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transport,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
 			},
 		},
 	}
@@ -128,13 +142,16 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 
 		for _, req := range rule.HTTP {
 			for _, path := range req.Path {
-				url := strings.Replace(path, "{{BaseURL}}", baseURL, 1)
+				reqURL := strings.Replace(path, "{{BaseURL}}", baseURL, 1)
+				if req.ForceScheme != "" {
+					reqURL = withScheme(reqURL, req.ForceScheme)
+				}
 
 				if s.DelayMs > 0 {
 					time.Sleep(time.Duration(s.DelayMs) * time.Millisecond)
 				}
 
-				resp, err := s.doRequest(req.Method, url)
+				resp, err := s.doRequestWithOptions(req.Method, reqURL, req.NoFollowRedirects)
 				if err != nil {
 					continue
 				}
@@ -145,12 +162,23 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 					continue
 				}
 
+				// Si el sitio redirigió TODO camino a la home ("/") en vez de
+				// responder al recurso específico que pedimos, el contenido
+				// evaluado no corresponde al recurso probado — evaluar
+				// matchers sobre él produciría un falso positivo (ej. un
+				// endpoint /graphql inexistente que cae a la home del sitio,
+				// que naturalmente no tiene el schema de GraphQL pero sí
+				// puede contener coincidencias accidentales de palabras).
+				if requestedPath := pathOf(reqURL); requestedPath != "/" && resp.FinalPath == "/" && resp.FinalPath != requestedPath {
+					continue
+				}
+
 				// Evaluar matchers SOLO si el status code es apropiado
 				if EvaluateMatchers(req.Matchers, req.MatchersCondition, resp) {
 					findings = append(findings, Finding{
 						RuleID:    rule.ID,
 						RuleName:  rule.Info.Name,
-						Target:    url,
+						Target:    reqURL,
 						Severity:  rule.Info.Severity,
 						CVE:       rule.Info.CVE,
 						Impact:    rule.Info.Impact,
@@ -214,6 +242,28 @@ func isRedirect(statusCode int) bool {
 	return statusCode >= 300 && statusCode < 400
 }
 
+// withScheme reemplaza el esquema de rawURL por scheme. Si rawURL no es una
+// URL válida, se devuelve tal cual (el error de conexión resultante ya se
+// maneja donde se hace la request).
+func withScheme(rawURL, scheme string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	u.Scheme = scheme
+	return u.String()
+}
+
+// pathOf extrae el path de rawURL, devolviendo "/" si está vacío o si
+// rawURL no es parseable.
+func pathOf(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Path == "" {
+		return "/"
+	}
+	return u.Path
+}
+
 // certFindings evalúa el certificado TLS presentado y genera hallazgos de
 // configuración (no de vulnerabilidad de software): auto-firmado, vencido,
 // o por vencer en menos de 30 días. Un cert auto-firmado en producción no
@@ -261,8 +311,12 @@ func certFindings(target string, cert *CertInfo) []Finding {
 	return out
 }
 
-func (s *HTTPScanner) doRequest(method, url string) (*Response, error) {
-	req, err := http.NewRequest(method, url, nil)
+func (s *HTTPScanner) doRequest(method, target string) (*Response, error) {
+	return s.doRequestWithOptions(method, target, false)
+}
+
+func (s *HTTPScanner) doRequestWithOptions(method, target string, noFollowRedirects bool) (*Response, error) {
+	req, err := http.NewRequest(method, target, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +325,12 @@ func (s *HTTPScanner) doRequest(method, url string) (*Response, error) {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := s.Client.Do(req)
+	client := s.Client
+	if noFollowRedirects {
+		client = s.NoRedirectClient
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -285,6 +344,11 @@ func (s *HTTPScanner) doRequest(method, url string) (*Response, error) {
 	headers := make(map[string]string)
 	for k, v := range resp.Header {
 		headers[k] = strings.Join(v, ", ")
+	}
+
+	finalPath := "/"
+	if resp.Request != nil && resp.Request.URL != nil && resp.Request.URL.Path != "" {
+		finalPath = resp.Request.URL.Path
 	}
 
 	tlsVersion := ""
@@ -308,6 +372,7 @@ func (s *HTTPScanner) doRequest(method, url string) (*Response, error) {
 		Headers:    headers,
 		TLSVersion: tlsVersion,
 		Cert:       certInfo,
+		FinalPath:  finalPath,
 	}, nil
 }
 

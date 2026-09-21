@@ -26,6 +26,16 @@ type HTTPRequest struct {
 	MatchersCondition string    `yaml:"matchers-condition,omitempty"`
 	Matchers          []Matcher `yaml:"matchers"`
 	Evasion           *Evasion  `yaml:"evasion,omitempty"`
+	// ForceScheme sobreescribe el esquema (http|https) de la URL construida,
+	// ignorando el que traiga BaseURL. Necesario para reglas que deben probar
+	// específicamente el comportamiento de HTTP plano (ej. verificar que
+	// redirige a HTTPS) sin importar con qué esquema se invocó el scan.
+	ForceScheme string `yaml:"force_scheme,omitempty"`
+	// NoFollowRedirects evita seguir redirects para esta request puntual y
+	// evalúa la respuesta 3xx cruda tal cual llega. Sin esto, el cliente HTTP
+	// sigue redirects automáticamente y algunas reglas terminan evaluando el
+	// contenido de una página completamente distinta a la solicitada.
+	NoFollowRedirects bool `yaml:"no_follow_redirects,omitempty"`
 }
 
 type Matcher struct {
@@ -69,6 +79,12 @@ type Response struct {
 	Headers    map[string]string
 	TLSVersion string
 	Cert       *CertInfo // nil si no es HTTPS o no hubo certificado
+	// FinalPath es el path de la URL luego de seguir redirects (si el
+	// cliente los siguió). Sirve para detectar cuando un sitio redirige
+	// TODO camino a la home ("/") en vez de responder al recurso pedido —
+	// en ese caso, evaluar matchers sobre el contenido resultante produce
+	// falsos positivos porque nunca se llegó al recurso real.
+	FinalPath string
 }
 
 // CertInfo resume lo relevante del certificado TLS presentado por el

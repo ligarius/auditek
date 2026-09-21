@@ -10,6 +10,14 @@ type: http
 http:
   - method: GET
     path: ["{{BaseURL}}/"]
+    # force_scheme fuerza a probar HTTP plano sin importar con qué esquema
+    # se invocó el scan (BaseURL siempre llega en https). no_follow_redirects
+    # evita que el cliente siga automáticamente el 301/302 a HTTPS — si lo
+    # siguiera, el status final sería 200 (de la página https) y esta regla
+    # dispararía en CUALQUIER sitio con HTTPS funcionando, sin importar si
+    # HTTP realmente redirige o no.
+    force_scheme: http
+    no_follow_redirects: true
     matchers:
       - type: status
         status: [200]
