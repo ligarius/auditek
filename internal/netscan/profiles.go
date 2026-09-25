@@ -61,6 +61,7 @@ func getTopPorts(count int) []int {
 		1521, 3306, 3389, 5432, 5984, 6379, 7000, 8086, 8161,
 		9160, 9200, 11211, 27017, 50070, 8020, 8086,
 	}
+	common = dedupePorts(common)
 	if count >= len(common) {
 		return common
 	}
@@ -73,4 +74,20 @@ func getAllPorts() []int {
 		ports = append(ports, i)
 	}
 	return ports
+}
+
+// dedupePorts devuelve los puertos sin repetidos, preservando el orden de
+// primera aparición. Evita que una lista con duplicados (perfiles, --ports,
+// rangos) haga que ScanHost escanee y reporte el mismo puerto más de una vez.
+func dedupePorts(ports []int) []int {
+	seen := make(map[int]struct{}, len(ports))
+	out := make([]int, 0, len(ports))
+	for _, p := range ports {
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		out = append(out, p)
+	}
+	return out
 }
