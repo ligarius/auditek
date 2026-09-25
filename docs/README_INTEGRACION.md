@@ -94,3 +94,33 @@ cd exploits/secrets-validate && go build -o secrets-validate .
 - `secrets-validated` → activa `path-secrets-validated`.
 - Si el scan nativo también encontró `exposed-env-file` / `exposed-wp-config-bak` /
   `exposed-git-config` → `path-secrets-detected-and-validated`.
+
+## 8. Módulos PoC activos de movimiento lateral
+
+Dos módulos externos más (solo stdlib) que, a diferencia de la correlación
+pasiva, **se conectan de verdad** al servicio y traen evidencia directa:
+
+### `exploits/vsftpd-backdoor`
+Verifica el backdoor de **vsftpd 2.3.4** (CVE-2011-2523): conecta al FTP,
+dispara el patrón (`USER …:)`), y si el bind shell del puerto 6200 responde,
+ejecuta un único `id` para evidenciar RCE. Emite `vsftpd-backdoor-confirmed`
+(critical, con CVE) — que además satisface el marcador de CVE crítico de la
+correlación `path-rce-plus-lateral`.
+
+### `exploits/lateral-probe`
+Confirma de forma activa que **WinRM (5985)** o **RDP (3389)** responden
+(no solo que el puerto está abierto): a WinRM le manda un POST `/wsman` y
+reporta el `HTTP 401 / Server`, a RDP le hace el handshake X.224 y confirma
+el *Connection Confirm*. Emite `lateral-movement-confirmed` (high).
+
+```bash
+cd exploits/vsftpd-backdoor && go build -o vsftpd-backdoor .
+cd ../lateral-probe && go build -o lateral-probe .
+
+./auditek scan network 127.0.0.1 --yes --internal-yes --exec-hook ./exploits/vsftpd-backdoor
+./auditek scan network 127.0.0.1 --yes --internal-yes --exec-hook ./exploits/lateral-probe
+```
+
+> ⚠️  Ambos hacen **pruebas activas** (se conectan y, en vsftpd, ejecutan un
+> comando de verificación). Úsalos solo contra sistemas propios o con
+> autorización escrita.
