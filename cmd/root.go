@@ -44,6 +44,7 @@ func printUsage() {
 Uso:
   auditek auth --token <token>
   auditek scan [network|web|subdomains|container] <target> [flags]
+  (para container, <target> es un Dockerfile o un directorio que lo contenga)
   auditek report <scan-id> [flags]
   auditek update-db [--product <nombre>]
   auditek import <archivo.json> [--target <target>]

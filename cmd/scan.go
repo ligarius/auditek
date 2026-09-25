@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"auditek/internal/auth"
+	"auditek/internal/container"
 	"auditek/internal/correlate"
 	"auditek/internal/cvedb"
 	"auditek/internal/engine"
@@ -209,7 +210,7 @@ func runScanCmd(args []string) error {
 			fmt.Println("Escaneo cancelado.")
 			return nil
 		}
-	} else if !*skipConfirm {
+	} else if !*skipConfirm && scanType != "container" {
 		if !confirmAuthorization(target) {
 			fmt.Println("Escaneo cancelado.")
 			return nil
@@ -224,7 +225,7 @@ func runScanCmd(args []string) error {
 	case "subdomains":
 		return runSubdomainScan(target, *depth, *focus, *wordlistFile)
 	case "container":
-		return fmt.Errorf("escaneo de contenedores aún no implementado")
+		return runContainerScan(target, excluded)
 	default:
 		return fmt.Errorf("tipo de escaneo no reconocido: %s", scanType)
 	}
@@ -385,10 +386,9 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 		return err
 	}
 
-	
 	// Mostrar hallazgos en pantalla
 	displayFindings(toSave)
-	
+
 	// Ofrecer exportar HTML
 	if promptExportHTML(scanID) {
 		if err := exportHTMLReport(scanID, toSave, target); err != nil {
@@ -595,10 +595,9 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 		return err
 	}
 
-	
 	// Mostrar hallazgos en pantalla
 	displayFindings(toSave)
-	
+
 	// Ofrecer exportar HTML
 	if promptExportHTML(scanID) {
 		if err := exportHTMLReport(scanID, toSave, target); err != nil {
@@ -610,4 +609,93 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
 
 	return nil
+}
+
+// runContainerScan hace análisis estático de un Dockerfile (archivo o
+// directorio que lo contenga) y reporta malas prácticas y secretos.
+func runContainerScan(target string, excluded map[string]bool) error {
+	dockerfilePath, err := resolveDockerfile(target)
+	if err != nil {
+		return err
+	}
+
+	content, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		return fmt.Errorf("error leyendo Dockerfile: %w", err)
+	}
+
+	fmt.Printf("\n🐳 Analizando Dockerfile: %s\n", dockerfilePath)
+	issues := container.ScanDockerfile(string(content))
+
+	store, err := findings.Open()
+	if err != nil {
+		return fmt.Errorf("error abriendo base de datos local: %w", err)
+	}
+	defer store.Close()
+
+	scanID := findings.NewScanID()
+	if err := store.SaveScan(findings.Scan{
+		ID: scanID, Type: "container", Target: dockerfilePath,
+		StartedAt: time.Now(), Stealth: false,
+	}); err != nil {
+		return err
+	}
+
+	var toSave []findings.Finding
+	for _, is := range issues {
+		if excluded[is.RuleID] {
+			continue
+		}
+		targetRef := dockerfilePath
+		if is.Line > 0 {
+			targetRef = fmt.Sprintf("%s:%d", dockerfilePath, is.Line)
+		}
+		toSave = append(toSave, findings.Finding{
+			ScanID:    scanID,
+			RuleID:    is.RuleID,
+			RuleName:  is.RuleName,
+			Target:    targetRef,
+			Severity:  is.Severity,
+			Impact:    is.Impact,
+			Evidence:  is.Evidence,
+			Timestamp: time.Now(),
+		})
+	}
+
+	toSave = append(toSave, correlate.Correlate(scanID, toSave)...)
+
+	if err := store.SaveFindings(scanID, toSave); err != nil {
+		return err
+	}
+
+	displayFindings(toSave)
+
+	if promptExportHTML(scanID) {
+		if err := exportHTMLReport(scanID, toSave, dockerfilePath); err != nil {
+			fmt.Printf("Error exportando HTML: %v\n", err)
+		}
+	}
+
+	fmt.Printf("Escaneo completo (%s): %d hallazgo(s)\n", scanID, len(toSave))
+	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	return nil
+}
+
+// resolveDockerfile acepta la ruta de un Dockerfile o de un directorio que lo
+// contenga y devuelve la ruta al archivo.
+func resolveDockerfile(target string) (string, error) {
+	info, err := os.Stat(target)
+	if err != nil {
+		return "", fmt.Errorf("no se pudo acceder a '%s': %w", target, err)
+	}
+	if !info.IsDir() {
+		return target, nil
+	}
+	for _, name := range []string{"Dockerfile", "dockerfile", "Containerfile"} {
+		candidate := filepath.Join(target, name)
+		if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("no se encontró un Dockerfile en el directorio '%s'", target)
 }
