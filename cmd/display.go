@@ -98,6 +98,33 @@ func promptExportHTML(scanID string) bool {
 	return input == "s" || input == "si" || input == "sí" || input == "y" || input == "yes"
 }
 
+// maybeExport decide si exportar el reporte según --export:
+//   - ""         -> pregunta interactivamente (comportamiento histórico)
+//   - "html"     -> exporta sin preguntar
+//   - "none"/"no"-> no exporta ni pregunta (útil para automatización)
+//   - otro       -> avisa y no exporta
+func maybeExport(exportFmt, scanID string, fs []findings.Finding, target string) {
+	switch strings.ToLower(strings.TrimSpace(exportFmt)) {
+	case "":
+		if !promptExportHTML(scanID) {
+			return
+		}
+	case "none", "no":
+		return
+	case "html":
+		// exporta abajo
+	case "pdf":
+		fmt.Println("Export a PDF aún no soportado (el reporte se genera en HTML). Usa --export html y conviértelo, o abre el HTML e imprime a PDF.")
+		return
+	default:
+		fmt.Printf("Formato de --export no reconocido: %q (usa html | none)\n", exportFmt)
+		return
+	}
+	if err := exportHTMLReport(scanID, fs, target); err != nil {
+		fmt.Printf("Error exportando HTML: %v\n", err)
+	}
+}
+
 // exportHTMLReport genera el reporte HTML y lo guarda en archivo
 func exportHTMLReport(scanID string, fs []findings.Finding, target string) error {
 	// Usar target del primer finding si no se proporciona

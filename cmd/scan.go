@@ -189,6 +189,7 @@ func runScanCmd(args []string) error {
 	focus := fs.String("focus", "", "solo scan subdomains: categorías separadas por coma (admin,dev,infra,remote-access,devops,web,sensitive,data) — si se pasa, ignora --depth")
 	wordlistFile := fs.String("wordlist", "", "solo scan subdomains: archivo externo (una entrada por línea) — ignora --depth y --focus")
 	execHook := fs.String("exec-hook", "", "ruta a un programa externo (tuyo) a ejecutar tras el scan pasivo; debe imprimir en stdout un array JSON con el mismo formato de 'auditek import' — ver README")
+	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | none (vacío = preguntar interactivamente)")
 	fs.Parse(args)
 
 	rest := fs.Args()
@@ -219,13 +220,13 @@ func runScanCmd(args []string) error {
 
 	switch scanType {
 	case "network":
-		return runNetworkScan(target, *stealthMode, *ports, *profile, excluded, *rulesDir, *execHook)
+		return runNetworkScan(target, *stealthMode, *ports, *profile, excluded, *rulesDir, *execHook, *exportFmt)
 	case "web":
-		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook)
+		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook, *exportFmt)
 	case "subdomains":
 		return runSubdomainScan(target, *depth, *focus, *wordlistFile)
 	case "container":
-		return runContainerScan(target, excluded)
+		return runContainerScan(target, excluded, *exportFmt)
 	default:
 		return fmt.Errorf("tipo de escaneo no reconocido: %s", scanType)
 	}
@@ -340,7 +341,7 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
 	return nil
 }
 
-func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bool, rulesDir string, headers map[string]string, execHook string) error {
+func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bool, rulesDir string, headers map[string]string, execHook string, exportFmt string) error {
 	target = normalizeTarget(target)
 
 	rules, err := engine.LoadRules(rulesDir)
@@ -390,11 +391,7 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 	displayFindings(toSave)
 
 	// Ofrecer exportar HTML
-	if promptExportHTML(scanID) {
-		if err := exportHTMLReport(scanID, toSave, target); err != nil {
-			fmt.Printf("Error exportando HTML: %v\n", err)
-		}
-	}
+	maybeExport(exportFmt, scanID, toSave, target)
 	fmt.Printf("Escaneo completo (%s): %d hallazgos\n", scanID, len(toSave))
 	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
 
@@ -451,7 +448,7 @@ func lateralMovementFinding(scanID, host string, port int) *findings.Finding {
 	}
 }
 
-func runNetworkScan(target string, stealth bool, portsSpec string, profileName string, excluded map[string]bool, rulesDir string, execHook string) error {
+func runNetworkScan(target string, stealth bool, portsSpec string, profileName string, excluded map[string]bool, rulesDir string, execHook string, exportFmt string) error {
 	hosts, err := netscan.ExpandHosts(target)
 	if err != nil {
 		return fmt.Errorf("target inválido: %w", err)
@@ -599,11 +596,7 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 	displayFindings(toSave)
 
 	// Ofrecer exportar HTML
-	if promptExportHTML(scanID) {
-		if err := exportHTMLReport(scanID, toSave, target); err != nil {
-			fmt.Printf("Error exportando HTML: %v\n", err)
-		}
-	}
+	maybeExport(exportFmt, scanID, toSave, target)
 
 	fmt.Printf("Escaneo completo (%s): %d puertos abiertos\n", scanID, totalOpen)
 	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
@@ -613,7 +606,7 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 
 // runContainerScan hace análisis estático de un Dockerfile (archivo o
 // directorio que lo contenga) y reporta malas prácticas y secretos.
-func runContainerScan(target string, excluded map[string]bool) error {
+func runContainerScan(target string, excluded map[string]bool, exportFmt string) error {
 	dockerfilePath, err := resolveDockerfile(target)
 	if err != nil {
 		return err
@@ -670,11 +663,7 @@ func runContainerScan(target string, excluded map[string]bool) error {
 
 	displayFindings(toSave)
 
-	if promptExportHTML(scanID) {
-		if err := exportHTMLReport(scanID, toSave, dockerfilePath); err != nil {
-			fmt.Printf("Error exportando HTML: %v\n", err)
-		}
-	}
+	maybeExport(exportFmt, scanID, toSave, dockerfilePath)
 
 	fmt.Printf("Escaneo completo (%s): %d hallazgo(s)\n", scanID, len(toSave))
 	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
