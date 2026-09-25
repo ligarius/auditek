@@ -65,3 +65,32 @@ git push origin main
 ```
 
 No subas el binario compilado; solo el `.go`.
+
+## 7. Módulo `secrets-validate` (emisor de `secrets-validated`)
+
+`exploits/secrets-validate/` es un segundo módulo externo (solo stdlib). Descarga
+los archivos de secretos típicos del objetivo (`.env`, backups de `wp-config`,
+`.git/config`, etc.) y **valida estáticamente** si contienen material de alto
+valor (claves live de Stripe/AWS/Google/Slack/GitHub, llaves privadas PEM, URIs
+de BD con credenciales o tokens de alta entropía). Emite el `rule_id`
+`secrets-validated` con la evidencia **redactada**.
+
+> Alcance deliberado: la validación es **estática** (formato/patrón). El módulo
+> **no** usa ni autentica las credenciales contra ningún servicio — eso sería
+> intrusivo y, sin autorización específica, indebido. "Validado" = material
+> accionable de alto valor presente, no credencial probada.
+
+Compilar y usar:
+
+```bash
+cd exploits/secrets-validate && go build -o secrets-validate .
+
+# como hook del mismo scan web
+./auditek scan web http://localhost:8080 --yes --exec-hook ./exploits/secrets-validate/secrets-validate
+```
+
+`rule_id` que emite y correlación que activa:
+
+- `secrets-validated` → activa `path-secrets-validated`.
+- Si el scan nativo también encontró `exposed-env-file` / `exposed-wp-config-bak` /
+  `exposed-git-config` → `path-secrets-detected-and-validated`.
