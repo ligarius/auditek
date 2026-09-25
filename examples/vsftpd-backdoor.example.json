@@ -1,0 +1,11 @@
+[
+  {
+    "rule_id": "vsftpd-backdoor-confirmed",
+    "rule_name": "vsftpd 2.3.4: backdoor confirmado (shell remoto)",
+    "target": "127.0.0.1:21",
+    "severity": "critical",
+    "cve": "CVE-2011-2523",
+    "impact": "Prueba activa: el backdoor abrió un shell en :6200 y ejecutó un comando.",
+    "evidence": "Banner: 220 (vsFTPd 2.3.4) | shell en :6200 respondió a 'id': uid=0(root) gid=0(root) groups=0(root)"
+  }
+]
