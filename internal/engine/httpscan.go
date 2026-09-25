@@ -79,11 +79,11 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 			if resp.StatusCode == 200 {
 				if missing := FindExternalScriptsWithoutSRI(resp.Body, baseURL); len(missing) > 0 {
 					findings = append(findings, Finding{
-						RuleID:   "missing-sri-external-script",
-						RuleName: "Scripts externos sin Subresource Integrity (SRI)",
-						Target:   baseURL,
-						Severity: "medium",
-						Impact:   "Si el proveedor externo (CDN, librería de terceros) es comprometido, el script servido desde ahí se ejecutaría en el sitio sin ninguna verificación — es el vector de varios ataques de supply chain conocidos (ej. compromisos de CDN que afectaron miles de sitios simultáneamente).",
+						RuleID:    "missing-sri-external-script",
+						RuleName:  "Scripts externos sin Subresource Integrity (SRI)",
+						Target:    baseURL,
+						Severity:  "medium",
+						Impact:    "Si el proveedor externo (CDN, librería de terceros) es comprometido, el script servido desde ahí se ejecutaría en el sitio sin ninguna verificación — es el vector de varios ataques de supply chain conocidos (ej. compromisos de CDN que afectaron miles de sitios simultáneamente).",
 						Timestamp: time.Now(),
 						Evidence:  strings.Join(missing, "\n"),
 					})
@@ -191,47 +191,9 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 	}
 	fmt.Printf("        Procesadas %d/%d reglas... ✓\n", httpRuleCount, httpRuleCount)
 
-	// Fase 3: Resumen
+	// Fase 3: Finalizar (el resumen por severidad y el total se imprimen en
+	// displayFindings, ya sobre el set final incluyendo correlación)
 	fmt.Println("   [3/3] Finalizando...")
-	criticalCount := 0
-	highCount := 0
-	mediumCount := 0
-	lowCount := 0
-	infoCount := 0
-	for _, f := range findings {
-		switch f.Severity {
-		case "critical":
-			criticalCount++
-		case "high":
-			highCount++
-		case "medium":
-			mediumCount++
-		case "low":
-			lowCount++
-		case "info":
-			infoCount++
-		}
-	}
-
-	fmt.Println("   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("   📊 Resumen de hallazgos:\n")
-	if criticalCount > 0 {
-		fmt.Printf("      🔴 Crítico: %d\n", criticalCount)
-	}
-	if highCount > 0 {
-		fmt.Printf("      🟠 Alto: %d\n", highCount)
-	}
-	if mediumCount > 0 {
-		fmt.Printf("      🟡 Medio: %d\n", mediumCount)
-	}
-	if lowCount > 0 {
-		fmt.Printf("      🟢 Bajo: %d\n", lowCount)
-	}
-	if infoCount > 0 {
-		fmt.Printf("      ℹ️  Información: %d\n", infoCount)
-	}
-	fmt.Printf("   Total: %d hallazgo(s)\n", len(findings))
-	fmt.Println()
 
 	return findings
 }
