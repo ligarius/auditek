@@ -64,6 +64,7 @@ Flags de scan:
   --focus <cats>   solo scan subdomains: categorías separadas por coma (admin,dev,infra,remote-access,devops,web,sensitive,data)
   --wordlist <f>   solo scan subdomains: archivo externo, ignora --depth/--focus
   --exec-hook <f>  ruta a un programa externo tuyo; su salida JSON se integra al reporte (ver README)
+  --export <fmt>   exporta el reporte sin preguntar: html | none (vacío = pregunta)
 
 Flags de report:
   --format <fmt>   console|json|html`)
