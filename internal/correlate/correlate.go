@@ -14,8 +14,8 @@ import (
 // ejecuta la cadena, solo la explica para que el cliente entienda "hasta
 // dónde podría llegar" alguien que sí lo intente.
 type PathRule struct {
-	ID          string
-	Name        string
+	ID   string
+	Name string
 	// RequireAny: al menos uno de estos IDs debe estar presente por grupo.
 	// Cada elemento de RequireAnyGroups es un grupo — TODOS los grupos deben
 	// tener al menos un match (AND entre grupos, OR dentro del grupo).
@@ -64,6 +64,50 @@ var pathRules = []PathRule{
 			"y ADEMÁS existe esta superficie en la misma red interna (%s). Esto significa que un compromiso " +
 			"inicial vía esa vulnerabilidad probablemente no se quedaría en un solo servidor: el atacante " +
 			"tendría un camino directo para moverse lateralmente hacia otras máquinas de la red.",
+	},
+	{
+		ID:   "path-redis-write-confirmed",
+		Name: "Redis: impacto de escritura confirmado (herramienta externa)",
+		RequireAnyGroups: [][]string{
+			{"redis-write-demonstrated"},
+		},
+		Severity: "critical",
+		Narrative: "Se aportó evidencia de que Redis permite escritura real o acceso demostrable (%s). " +
+			"Esto eleva el hallazgo de exposición pasiva a impacto demostrado en el objetivo evaluado. " +
+			"Priorizar contención (requirepass, bind, comandos peligrosos deshabilitados) de inmediato.",
+	},
+	{
+		ID:   "path-redis-detected-and-write-confirmed",
+		Name: "Redis sin auth detectado + escritura/acceso demostrado",
+		RequireAnyGroups: [][]string{
+			{"redis-unauthenticated"},
+			{"redis-write-demonstrated"},
+		},
+		Severity: "critical",
+		Narrative: "Auditek detectó Redis sin autenticación (%s) y además se confirmó acceso/escritura (%s). " +
+			"La cadena exposición → manipulación del servidor queda demostrada en este engagement, " +
+			"no solo como hipótesis.",
+	},
+	{
+		ID:   "path-secrets-validated",
+		Name: "Secretos expuestos: uso o validez confirmada (herramienta externa)",
+		RequireAnyGroups: [][]string{
+			{"secrets-validated"},
+		},
+		Severity: "critical",
+		Narrative: "Se aportó evidencia de que secretos encontrados son utilizables o de alto valor (%s). " +
+			"Rotar credenciales, retirar archivos expuestos y revisar historial de despliegues.",
+	},
+	{
+		ID:   "path-secrets-detected-and-validated",
+		Name: "Secretos detectados + validación confirmada",
+		RequireAnyGroups: [][]string{
+			{"exposed-env-file", "exposed-wp-config-bak", "exposed-git-config"},
+			{"secrets-validated"},
+		},
+		Severity: "critical",
+		Narrative: "Se encontraron archivos/secretos expuestos (%s) y la validación externa confirmó impacto (%s). " +
+			"No es solo exposición teórica: hay evidencia de que el material es accionable.",
 	},
 }
 
