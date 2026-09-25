@@ -74,7 +74,7 @@ func incIP(ip net.IP) {
 
 func ParsePorts(spec string) ([]int, error) {
 	if spec == "top100" {
-		return top100Ports, nil
+		return dedupePorts(top100Ports), nil
 	}
 
 	var ports []int
@@ -100,7 +100,7 @@ func ParsePorts(spec string) ([]int, error) {
 			ports = append(ports, p)
 		}
 	}
-	return ports, nil
+	return dedupePorts(ports), nil
 }
 
 var top100Ports = []int{

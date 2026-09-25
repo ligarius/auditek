@@ -30,6 +30,7 @@ func DefaultOptions() ScanOptions {
 }
 
 func ScanHost(host string, ports []int, opts ScanOptions) []PortResult {
+	ports = dedupePorts(ports)
 	var results []PortResult
 	var mu sync.Mutex
 	var wg sync.WaitGroup
