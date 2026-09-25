@@ -73,6 +73,19 @@ func displayFindings(fs []findings.Finding) {
 	}
 
 	fmt.Println(strings.Repeat("=", 70))
+	fmt.Println("📊 Resumen por severidad:")
+	sevLabels := map[string]string{
+		"critical": "🔴 Crítico",
+		"high":     "🟠 Alto",
+		"medium":   "🟡 Medio",
+		"low":      "🔵 Bajo",
+		"info":     "⚪ Info",
+	}
+	for _, sev := range severityOrder {
+		if n := len(bySeverity[sev]); n > 0 {
+			fmt.Printf("   %s: %d\n", sevLabels[sev], n)
+		}
+	}
 	fmt.Printf("Total: %d hallazgos encontrados\n", len(fs))
 }
 
@@ -94,7 +107,7 @@ func exportHTMLReport(scanID string, fs []findings.Finding, target string) error
 
 	// Construir datos del reporte
 	data := report.BuildReportData(scanID, target, fs, report.DefaultBrandContact())
-	
+
 	// Renderizar HTML
 	html, err := report.Render(data)
 	if err != nil {
