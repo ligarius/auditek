@@ -5,6 +5,7 @@ package container
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -85,7 +86,7 @@ func ScanDockerfile(content string) []Finding {
 		})
 	}
 
-	return out
+	return dedupe(out)
 }
 
 func parse(content string) []instruction {
@@ -298,4 +299,25 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+// dedupe colapsa hallazgos repetidos de la misma regla en la misma línea
+// (p. ej. un secreto que matchea el patrón de nombre y el de valor a la vez),
+// conservando el primero — el más descriptivo.
+func dedupe(fs []Finding) []Finding {
+	seen := make(map[string]struct{}, len(fs))
+	out := make([]Finding, 0, len(fs))
+	for _, f := range fs {
+		key := f.RuleID + "|" + itoa(f.Line)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, f)
+	}
+	return out
+}
+
+func itoa(n int) string {
+	return strconv.Itoa(n)
 }
