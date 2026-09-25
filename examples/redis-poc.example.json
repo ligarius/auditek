@@ -1,0 +1,10 @@
+[
+  {
+    "rule_id": "redis-write-demonstrated",
+    "rule_name": "Redis: escritura/acceso demostrado",
+    "target": "127.0.0.1:6379",
+    "severity": "critical",
+    "impact": "PoC controlada: Redis sin AUTH acepta PING/CONFIG/SET.",
+    "evidence": "PING → +PONG | CONFIG GET dir → respuesta recibida | SET auditek:poc → OK"
+  }
+]
