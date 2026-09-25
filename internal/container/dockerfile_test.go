@@ -73,3 +73,12 @@ func TestSecretsAreMasked(t *testing.T) {
 	}
 	t.Fatal("no se detectó el secreto hardcodeado")
 }
+
+func TestSecretReportedOncePerLine(t *testing.T) {
+	// La AWS key matchea el patrón de nombre (AWS_SECRET_ACCESS_KEY=...) y el
+	// de valor (AKIA...) a la vez; debe reportarse una sola vez.
+	df := "FROM alpine:3.19\nUSER app\nENV AWS_SECRET_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE\n"
+	if n := ids(ScanDockerfile(df))["dockerfile-hardcoded-secret"]; n != 1 {
+		t.Errorf("un secreto en una línea debe reportarse 1 vez, got %d", n)
+	}
+}
