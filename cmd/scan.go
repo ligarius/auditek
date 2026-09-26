@@ -16,6 +16,7 @@ import (
 	"auditek/internal/cvedb"
 	"auditek/internal/engine"
 	"auditek/internal/findings"
+	"auditek/internal/adscan"
 	"auditek/internal/netscan"
 	"auditek/internal/progress"
 	"auditek/internal/scope"
@@ -655,6 +656,21 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 				Target: tf.Target, Severity: tf.Severity,
 				CVE: strings.Join(tf.CVE, ","), Impact: tf.Impact, Evidence: tf.Evidence,
 				Timestamp: tf.Timestamp,
+			})
+		}
+
+		// Reconocimiento de Active Directory (sin autenticar): DC, superficie
+		// LDAP/Kerberos/GC y firma SMB.
+		adOpen := map[int]bool{}
+		for _, p := range ports {
+			adOpen[p.Port] = true
+		}
+		for _, af := range adscan.Analyze(host, adOpen, 4*time.Second) {
+			ui.Detail(2, "AD: %s (%s)", af.RuleName, af.Target)
+			toSave = append(toSave, findings.Finding{
+				ScanID: scanID, RuleID: af.RuleID, RuleName: af.RuleName,
+				Target: af.Target, Severity: af.Severity, Impact: af.Impact,
+				Evidence: af.Evidence, Timestamp: time.Now(),
 			})
 		}
 	}

@@ -436,6 +436,31 @@ autenticarse, explotar, ni moverse a otro host. Auditek no hace ni hará
 explotación activa ni post-explotación (eso es un tipo de servicio
 distinto, típicamente con operador humano y herramientas especializadas).
 
+## Reconocimiento de Active Directory (sin autenticar)
+
+En un `scan network`, Auditek reconoce entornos AD **sin usar credenciales**
+(`internal/adscan`):
+
+- **Domain Controller probable** (`ad-domain-controller`): identifica DCs por su
+  perfil de puertos — Kerberos (88) + LDAP (389), más el contexto de GC
+  (3268/3269), SMB (445), DNS (53). El DC es el activo más crítico del dominio.
+- **LDAP sin LDAPS** (`ad-ldap-cleartext`): 389 abierto sin 636 — binds y
+  consultas al directorio viajan sin TLS.
+- **Kerberos/KDC accesible** (`ad-kerberos-exposed`): superficie para AS-REP
+  roasting / Kerberoasting (requiere lista de usuarios; Auditek no la obtiene).
+- **Global Catalog en claro** (`ad-global-catalog-cleartext`): 3268 sin 3269.
+- **Firma SMB no requerida** (`ad-smb-signing-not-required`): un único SMB2
+  `NEGOTIATE` (sin login) revela la política de firma; si no es obligatoria,
+  habilita **NTLM relay**.
+
+La correlación añade `path-ad-ntlm-relay` cuando coexisten un DC y firma SMB no
+requerida en el mismo scan.
+
+**Sigue siendo reconocimiento**: Auditek nunca prueba credenciales, no hace
+password spraying, pass-the-hash, Kerberoasting real ni dumping. Esa parte
+autenticada (estilo CrackMapExec/NetExec) corresponde a un módulo `--exec-hook`
+separado, no al core.
+
 ## Modo stealth (evasión avanzada)
 
 Pensado como gancho de venta: la versión gratis encuentra vulnerabilidades,
@@ -480,6 +505,7 @@ internal/
   engine/       motor de reglas HTTP + TCP, matchers, fingerprinting, SRI, supply chain
   cvedb/        base de datos curada + cliente NVD
   netscan/      escaneo de puertos, perfiles, rangos/CIDR, detección de CDN
+  adscan/       reconocimiento de Active Directory sin autenticar (DC, LDAP/Kerberos, firma SMB)
   subdomain/    enumeración de subdominios por DNS
   container/    análisis estático de Dockerfile
   correlate/    correlación de hallazgos ("hasta dónde podría llegar")
