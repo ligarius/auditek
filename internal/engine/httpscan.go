@@ -2,11 +2,15 @@ package engine
 
 import (
 	"auditek/internal/cvedb"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -163,6 +167,15 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 		fmt.Println(" ✗ (no se pudo conectar)")
 	}
 
+	// Detección de catch-all / soft-404: muchos sitios (SPAs, algunos WAFs)
+	// responden 200 con su página genérica para CUALQUIER ruta. Sin esto, las
+	// reglas que asumen "si responde 200, el recurso existe" (.env, /login,
+	// backups, etc.) disparan falsos positivos en masa.
+	catchAll, catchAllSig := s.detectCatchAll(baseURL)
+	if catchAll {
+		fmt.Println("   [i] catch-all/soft-404 detectado: se descartan coincidencias que devuelven la página genérica")
+	}
+
 	// Fase 2: Escaneo de reglas HTTP
 	fmt.Printf("   [2/3] Aplicando %d reglas de seguridad...\n", len(s.Rules))
 	rulesProcessed := 0
@@ -218,6 +231,13 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 					continue
 				}
 
+				// Si el sitio es catch-all y este recurso específico devolvió la
+				// misma página genérica que una ruta aleatoria inexistente, el
+				// recurso NO existe: la coincidencia es un falso positivo.
+				if catchAllHit(catchAll, pathOf(reqURL), catchAllSig, bodySignature(resp.Body), resp.StatusCode) {
+					continue
+				}
+
 				// Evaluar matchers SOLO si el status code es apropiado
 				if EvaluateMatchers(req.Matchers, req.MatchersCondition, resp) {
 					findings = append(findings, Finding{
@@ -247,6 +267,55 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 // Los redirects son respuestas normales, no vulnerabilidades
 func isRedirect(statusCode int) bool {
 	return statusCode >= 300 && statusCode < 400
+}
+
+// detectCatchAll pide una ruta aleatoria que casi seguro no existe. Si el
+// servidor responde 200 con cuerpo, es un catch-all/soft-404 (SPA, etc.);
+// devolvemos la firma de ese cuerpo para reconocer la página genérica.
+func (s *HTTPScanner) detectCatchAll(baseURL string) (bool, string) {
+	resp, err := s.doRequest("GET", strings.TrimRight(baseURL, "/")+"/auditek-probe-"+randomToken())
+	if err != nil || resp.StatusCode != 200 || len(strings.TrimSpace(resp.Body)) == 0 {
+		return false, ""
+	}
+	return true, bodySignature(resp.Body)
+}
+
+// catchAllHit decide si una coincidencia es en realidad la página catch-all: el
+// sitio es catch-all, se pidió una ruta específica (no "/"), respondió 200 y su
+// cuerpo tiene la misma firma que la ruta aleatoria inexistente.
+func catchAllHit(catchAll bool, reqPath, baselineSig, bodySig string, status int) bool {
+	return catchAll && reqPath != "/" && reqPath != "" && status == 200 && bodySig == baselineSig
+}
+
+// bodySignature normaliza el cuerpo (quita dígitos y colapsa espacios, para
+// tolerar nonces/ids que varían por request) y devuelve un hash + bucket de
+// tamaño, para comparar si dos respuestas son "la misma plantilla".
+func bodySignature(body string) string {
+	var b strings.Builder
+	space := false
+	for _, r := range body {
+		switch {
+		case r >= '0' && r <= '9':
+			// omite dígitos
+		case r == ' ' || r == '\t' || r == '\n' || r == '\r':
+			if !space {
+				b.WriteByte(' ')
+				space = true
+			}
+		default:
+			b.WriteRune(r)
+			space = false
+		}
+	}
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(b.String()))
+	return strconv.FormatUint(h.Sum64(), 16) + ":" + strconv.Itoa(len(body)/64)
+}
+
+func randomToken() string {
+	b := make([]byte, 6)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 // withScheme reemplaza el esquema de rawURL por scheme. Si rawURL no es una
