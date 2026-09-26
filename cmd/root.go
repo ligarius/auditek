@@ -66,7 +66,7 @@ Flags de scan:
   --ct             solo scan subdomains: además consulta Certificate Transparency (crt.sh)
   --osv            solo scan web: consulta OSV (osv.dev) por CVEs de dependencias en manifiestos expuestos
   --exec-hook <f>  ruta a un programa externo tuyo; su salida JSON se integra al reporte (ver README)
-  --export <fmt>   exporta el reporte sin preguntar: html | none (vacío = pregunta)
+  --export <fmt>   exporta el reporte sin preguntar: html | sarif | none (vacío = pregunta)
   -v | -vv | -vvv  nivel de detalle: fases/evidencia | red y reglas | traza de depuración
 
 Salida:

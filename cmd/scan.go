@@ -198,7 +198,7 @@ func runScanCmd(args []string) error {
 	ctLogs := fs.Bool("ct", false, "solo scan subdomains: además consulta Certificate Transparency (crt.sh) para descubrir subdominios reales")
 	osvLookup := fs.Bool("osv", false, "solo scan web: consulta OSV (osv.dev) por CVEs de dependencias en manifiestos expuestos (package.json/composer.json)")
 	execHook := fs.String("exec-hook", "", "ruta a un programa externo (tuyo) a ejecutar tras el scan pasivo; debe imprimir en stdout un array JSON con el mismo formato de 'auditek import' — ver README")
-	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | none (vacío = preguntar interactivamente)")
+	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | sarif | none (vacío = preguntar interactivamente)")
 	vLvl1 := fs.Bool("v", false, "verbose: sub-pasos y evidencia completa por hallazgo")
 	vLvl2 := fs.Bool("vv", false, "más verbose: inventario de red/HTTP (hosts, puertos, reglas)")
 	vLvl3 := fs.Bool("vvv", false, "aún más verbose: traza de depuración (banners crudos, correlación)")
