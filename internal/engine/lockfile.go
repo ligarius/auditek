@@ -109,16 +109,26 @@ func normalizeLockVersion(v string) string {
 	return v
 }
 
-// AnalyzeLockfile parsea un lockfile (composer.lock / package-lock.json), que
-// trae las versiones EXACTAS instaladas, y las cruza contra la cvedb local y
-// OSV — sin la salvedad de "versión aproximada" de los manifiestos.
+// AnalyzeLockfile parsea un lockfile con versiones EXACTAS instaladas y las
+// cruza contra la cvedb local y OSV — sin la salvedad de "versión aproximada".
+// El parser se elige por el nombre del archivo (source), no solo por ecosistema,
+// porque un mismo ecosistema tiene varios formatos (npm: package-lock/yarn;
+// PyPI: requirements/Pipfile).
 func AnalyzeLockfile(body, target, source, ecosystem string, useOSV bool) []Finding {
 	var deps map[string]string
-	switch ecosystem {
-	case "Packagist":
+	switch {
+	case strings.HasSuffix(source, "composer.lock"):
 		deps = parseComposerLock(body)
-	case "npm":
+	case strings.HasSuffix(source, "package-lock.json"):
 		deps = parsePackageLock(body)
+	case strings.HasSuffix(source, "yarn.lock"):
+		deps = parseYarnLock(body)
+	case strings.HasSuffix(source, "Pipfile.lock"):
+		deps = parsePipfileLock(body)
+	case strings.HasSuffix(source, "requirements.txt"):
+		deps = parseRequirementsTxt(body)
+	case strings.HasSuffix(source, "go.mod"):
+		deps = parseGoMod(body)
 	}
 	return crossReferenceVersions(deps, target, source, ecosystem, useOSV, true)
 }
