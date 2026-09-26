@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"auditek/internal/findings"
 	"auditek/internal/report"
+	"auditek/internal/ui"
 )
 
 var severityOrder = map[string]int{
@@ -40,7 +42,7 @@ func runReportCmd(args []string) error {
 	}
 
 	if len(results) == 0 {
-		fmt.Println("No se encontraron hallazgos para ese scan-id (o no existe).")
+		ui.Warn("No se encontraron hallazgos para ese scan-id (o no existe).")
 		return nil
 	}
 
@@ -59,38 +61,41 @@ func runReportCmd(args []string) error {
 }
 
 func printConsole(scanID string, results []findings.Finding) error {
-	fmt.Printf("\n=== Reporte Auditek — %s ===\n\n", scanID)
+	ui.Title("Reporte Auditek", scanID)
 
-	counts := map[string]int{}
+	bySeverity := map[string][]findings.Finding{}
 	for _, f := range results {
-		counts[f.Severity]++
+		bySeverity[f.Severity] = append(bySeverity[f.Severity], f)
 	}
 
-	fmt.Println("Resumen:")
-	for _, sev := range []string{"critical", "high", "medium", "low", "info"} {
-		if c := counts[sev]; c > 0 {
-			fmt.Printf("  %-9s %d\n", sev+":", c)
+	fmt.Println("  " + ui.Bold("HALLAZGOS"))
+	fmt.Println("  " + ui.Gray(ui.Rule(66)))
+	for _, sev := range severityDisplayOrder {
+		for _, f := range bySeverity[sev] {
+			fmt.Printf("  %s %s  %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Bold(f.RuleName))
+			fmt.Printf("       %s %s\n", ui.Gray("target"), f.Target)
+			if f.CVE != "" {
+				fmt.Printf("       %s    %s\n", ui.Gray("cve"), ui.Yellow(f.CVE))
+			}
+			if f.Impact != "" {
+				fmt.Printf("       %s %s\n", ui.Gray("riesgo"), f.Impact)
+			}
+			if f.Evidence != "" {
+				fmt.Printf("       %s %s\n", ui.Gray("evidencia"), ui.Dim(f.Evidence))
+			}
+			fmt.Println()
 		}
 	}
+
+	fmt.Println("  " + ui.Gray(ui.Rule(66)))
+	seg := make([]string, 0, len(severityDisplayOrder))
+	for _, sev := range severityDisplayOrder {
+		seg = append(seg, ui.SeverityCount(sev, len(bySeverity[sev])))
+	}
+	fmt.Printf("  %s   %s\n", ui.Bold("Resumen"), strings.Join(seg, ui.Gray(" · ")))
+	fmt.Printf("  %s     %d hallazgos\n", ui.Bold("Total"), len(results))
 	fmt.Println()
-
-	for _, f := range results {
-		fmt.Printf("[%s] %s\n", severityLabel(f.Severity), f.RuleName)
-		fmt.Printf("  Target:   %s\n", f.Target)
-		if f.CVE != "" {
-			fmt.Printf("  CVE:      %s\n", f.CVE)
-		}
-		if f.Impact != "" {
-			fmt.Printf("  Riesgo:   %s\n", f.Impact)
-		}
-		if f.Evidence != "" {
-			fmt.Printf("  Evidence: %s\n", f.Evidence)
-		}
-		fmt.Println()
-	}
-
-	fmt.Println("---")
-	fmt.Println("Auditoría generada con Auditek — servicios de ciberseguridad")
+	ui.Info("Auditoría generada con Auditek — servicios de ciberseguridad")
 
 	return nil
 }
@@ -118,20 +123,6 @@ func generateHTMLReport(scanID string, results []findings.Finding) error {
 		return err
 	}
 
-	fmt.Printf("Reporte generado: %s\n", filename)
+	ui.OK("Reporte generado: %s", ui.Bold(filename))
 	return nil
-}
-
-func severityLabel(s string) string {
-	labels := map[string]string{
-		"critical": "CRÍTICO",
-		"high":     "ALTO",
-		"medium":   "MEDIO",
-		"low":      "BAJO",
-		"info":     "INFO",
-	}
-	if l, ok := labels[s]; ok {
-		return l
-	}
-	return s
 }
