@@ -12,7 +12,7 @@ import (
 const (
 	sarifSchema  = "https://json.schemastore.org/sarif-2.1.0.json"
 	sarifVersion = "2.1.0"
-	toolVersion  = "0.3.0"
+	toolVersion  = "0.4.0"
 	toolInfoURI  = "https://github.com/ligarius/auditek"
 )
 

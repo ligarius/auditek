@@ -7,6 +7,25 @@ Escanea desde varias perspectivas del negocio: exposición de datos,
 misconfiguraciones, cumplimiento básico, y superficie de ataque de
 terceros — no solo una lista técnica de CVEs.
 
+## Resumen
+
+auditek es **no autenticado** por diseño: hace reconocimiento y evaluación, los
+correlaciona y los reporta; la explotación o validación autenticada se conecta
+por módulos externos (`--exec-hook`), nunca vive en el core.
+
+- **Red**: port scan + banners, reglas de protocolo real (Redis, FTP, SMTP…),
+  CVEs por fingerprint, y superficie de movimiento lateral en redes internas.
+- **Active Directory** (sin credenciales): detección de Domain Controller,
+  LDAP/Kerberos/Global Catalog inseguros, y firma SMB no requerida (NTLM relay).
+- **Web**: reglas de misconfiguración/exposición/compliance, CVEs por versión,
+  SRI/supply-chain y chequeos de certificado TLS.
+- **Dependencias (SCA)**: manifiestos y **lockfiles** (npm, Packagist, PyPI, Go)
+  cruzados contra la CVE db local y **OSV** (`--osv`).
+- **Subdominios**: DNS + **Certificate Transparency** (`--ct`).
+- **Contenedor**: análisis estático de Dockerfile.
+- **Correlación + score de riesgo** (0–100) y **reportes** console/JSON/HTML
+  (con branding) y **SARIF** (CI / GitHub code scanning).
+
 ## Instalación
 
 Requiere Go 1.22+.
@@ -496,6 +515,23 @@ Sin ambos, `--stealth` falla antes de enviar un solo paquete.
   asume `https://` — si tu sitio es HTTP plano, especifica el protocolo.
 - `http-not-redirecting-https` puede dar falso positivo si el sitio ya es
   HTTPS (la regla solo verifica que la URL responda 200).
+
+## Propuesta de mejora (roadmap de los límites)
+
+Cada límite de arriba tiene un camino de mejora concreto, ordenado por impacto:
+
+| Límite | Mejora propuesta | Esfuerzo |
+|---|---|---|
+| Fingerprint acotado (~18 productos) | Motor de fingerprint por reglas (YAML) en vez de regex embebidas, para sumar productos sin recompilar; mapear a CPE. | Medio |
+| CVE db curada chica + NVD por keyword | Precisión con CPE exacto; sync incremental de NVD; sumar la base de OSV también para servicios (no solo paquetes). | Medio |
+| Versión aproximada sin lockfile | Ya resuelto con lockfiles; extender a `poetry.lock`, `Gemfile.lock`, `go.sum`, `pnpm-lock.yaml`. | Bajo |
+| Red = TCP connect | Detección de versión de servicio más profunda (probes por puerto), y opción UDP para servicios clave (DNS, SNMP, NetBIOS). | Medio |
+| Web sin crawling ni fuzzing | Spider ligero para descubrir rutas antes de aplicar reglas; fuzzing pasivo de parámetros de bajo riesgo. | Alto |
+| Container solo estático | Inspección de imagen construida y sus capas (SCA de paquetes del SO). | Alto |
+| AD solo recon | Profundizar recon: LDAP anonymous → RootDSE (dominio/DC/functional level), CLDAP netlogon, extracción de dominio vía NTLMSSP en SMB. La parte autenticada sigue en NetExec vía `nxc-adapter`. | Medio |
+| OSV depende de red por scan | Cache local de respuestas OSV/NVD con TTL, para scans repetidos y modo offline. | Bajo |
+| Correlación solo intra-scan | Correlacionar hallazgos entre scans del mismo objetivo/cliente (persistidos en la BD). | Medio |
+| Integración CI | Ya hay SARIF; sumar una GitHub Action de ejemplo que corra auditek y suba el `.sarif`. | Bajo |
 
 ## Estructura del proyecto
 

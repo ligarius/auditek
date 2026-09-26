@@ -1,5 +1,42 @@
 # Auditek - Changelog
 
+## [0.4.0] - 2026-09-26
+
+### Agregado
+- **Active Directory (recon no autenticado)** (`internal/adscan`): detección de
+  Domain Controller por perfil de puertos (Kerberos+LDAP), LDAP sin LDAPS,
+  Kerberos/KDC accesible, Global Catalog en claro, y firma SMB no requerida vía
+  un SMB2 NEGOTIATE sin login (riesgo de NTLM relay). Cadena de correlación
+  `path-ad-ntlm-relay`.
+- **`nxc-adapter`** (`exploits/nxc-adapter`): parser de la salida de
+  NetExec/CrackMapExec al contrato `ExternalFinding`, para integrar validación de
+  credenciales autenticada vía `--exec-hook` sin meter ese motor en el core.
+- **OSV / osv.dev** (`--osv`): CVEs de dependencias por ecosistema (GHSA/CVE),
+  con dedup contra la cvedb local.
+- **SCA multi-ecosistema con versión exacta desde lockfiles**: `composer.lock`,
+  `package-lock.json` (v1/v2/v3), `yarn.lock`, `requirements.txt`, `Pipfile.lock`,
+  `go.mod`. Elimina la salvedad de "versión aproximada" cuando hay lockfile.
+- **Fingerprint ampliado** a ~18 productos + hallazgo `technology-detected`
+  (visible aunque no haya CVE).
+- **Correlación avanzada**: más cadenas de ataque y **postura de riesgo agregada
+  0–100** (en consola y en el reporte HTML).
+- **Subdominios vía Certificate Transparency** (`--ct`, crt.sh) además de la
+  wordlist DNS.
+- **Export SARIF 2.1.0** (`report --format sarif`) para CI / GitHub code scanning.
+- **Verbose `-v`/`-vv`/`-vvv`** y **`--export html|none`**.
+
+### Mejorado
+- **Motor de matching de CVE** (`internal/cvedb`): comparación de versiones
+  robusta con rangos (`>=`, `<`, `<=`) y sufijos (`7.4p1`); corrige un bug por el
+  que una entrada con solo `MinVersion` nunca matcheaba; reemplaza el hack
+  `.999` por techo inclusivo.
+- **Salida en terminal** (`internal/ui`): colores ANSI con apagado automático sin
+  TTY/`NO_COLOR`, badges de severidad, barra de progreso con ETA, y fases `▶/✓`.
+  `scan` y `report` (console) comparten el mismo estilo.
+
+### Corregido
+- Documentación: `scan container` figuraba como no implementado; sí lo está.
+
 ## [0.3.0] - 2026-09-26
 
 ### Agregado
