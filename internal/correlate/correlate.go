@@ -178,6 +178,19 @@ var pathRules = []PathRule{
 			"Juntas entregan a un atacante el mapa completo de endpoints, tipos y operaciones — reduce el trabajo " +
 			"de reconocimiento y facilita encontrar operaciones sensibles mal protegidas.",
 	},
+	{
+		ID:   "path-ad-ntlm-relay",
+		Name: "Escalada posible (AD): firma SMB no requerida + Domain Controller",
+		RequireAnyGroups: [][]string{
+			{"ad-smb-signing-not-required"},
+			{"ad-domain-controller"},
+		},
+		Severity: "high",
+		Narrative: "Hay hosts con firma SMB no requerida (%s) en la misma red donde se identificó un Domain " +
+			"Controller (%s). Un atacante puede coercer una autenticación NTLM (PetitPotam/printerbug/poisoning) " +
+			"y reenviarla (NTLM relay) a esos hosts o a servicios del dominio — un camino conocido de movimiento " +
+			"lateral y, según la configuración, de escalada hacia el control del dominio.",
+	},
 }
 
 // Correlate revisa el set de hallazgos de UN escaneo y agrega hallazgos de
