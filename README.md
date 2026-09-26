@@ -96,7 +96,7 @@ Cuatro tipos de escaneo:
 | `--rules <dir>` | `rules` | network/web | directorio de reglas a cargar en vez del embebido |
 | `--osv` | off | web | consulta OSV (osv.dev) por CVEs de dependencias en manifiestos expuestos (`package.json`/`composer.json`) |
 | `--exec-hook <f>` | — | network/web | binario externo tuyo cuya salida JSON se integra al reporte (ver más abajo) |
-| `--export <fmt>` | — | todos | exporta el reporte sin preguntar: `html` \| `none` (vacío = pregunta interactivamente) |
+| `--export <fmt>` | — | todos | exporta el reporte sin preguntar: `html` \| `sarif` \| `none` (vacío = pregunta interactivamente) |
 | `--stealth` | off | network/web | modo evasión avanzado (requiere `--scope` + auth) |
 | `--scope <file>` | — | con `--stealth` | scope.yaml del objetivo autorizado |
 | `-v` / `-vv` / `-vvv` | off | todos | nivel de detalle: fases + evidencia completa / red y reglas / traza de depuración |
@@ -112,6 +112,44 @@ El formato **`sarif`** genera `auditek-report-<scan-id>.sarif` (SARIF 2.1.0):
 el estándar que consume **GitHub code scanning** y muchas herramientas de CI.
 La severidad se mapea a `error` (critical/high), `warning` (medium) o `note`
 (low/info), y cada `RuleID` se registra una vez en `tool.driver.rules`.
+
+En CI podés generar el SARIF directo desde el scan con `--export sarif` (sin
+pasar por `report`):
+
+```bash
+./auditek scan web https://staging.tudominio.cl --yes --export sarif --osv
+# genera auditek-report-<scan-id>.sarif -> subir con github/codeql-action/upload-sarif
+```
+
+Workflow de GitHub Actions de ejemplo (guardalo en `.github/workflows/auditek.yml`;
+escaneá solo objetivos autorizados):
+
+```yaml
+name: auditek
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Objetivo a escanear (ej. https://staging.tudominio.cl)"
+        required: true
+permissions:
+  contents: read
+  security-events: write   # para subir el SARIF
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.22" }
+      - run: go build -o auditek .
+      - name: Escanear y exportar SARIF
+        run: |
+          ./auditek scan web "${{ github.event.inputs.target }}" --yes --export sarif --osv
+          mv auditek-report-*.sarif auditek.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: auditek.sarif }
+```
 
 ### `auditek auth --token <token>`
 
@@ -578,7 +616,7 @@ Cada límite de arriba tiene un camino de mejora concreto, ordenado por impacto:
 | AD solo recon | Profundizar recon: LDAP anonymous → RootDSE (dominio/DC/functional level), CLDAP netlogon, extracción de dominio vía NTLMSSP en SMB. La parte autenticada sigue en NetExec vía `nxc-adapter`. | Medio |
 | OSV depende de red por scan | Resuelto: cache local `~/.auditek/osv-cache.json` (TTL 24h) con fallback offline. Pendiente: mismo cache para NVD. | Bajo |
 | Correlación solo intra-scan | Correlacionar hallazgos entre scans del mismo objetivo/cliente (persistidos en la BD). | Medio |
-| Integración CI | Ya hay SARIF; sumar una GitHub Action de ejemplo que corra auditek y suba el `.sarif`. | Bajo |
+| Integración CI | Resuelto: `--export sarif` desde el scan + workflow de ejemplo (`.github/workflows/auditek.yml`) que sube a code scanning. | Bajo |
 
 ## Estructura del proyecto
 

@@ -100,7 +100,8 @@ func promptExportHTML(scanID string) bool {
 
 // maybeExport decide si exportar el reporte según --export:
 //   - ""         -> pregunta interactivamente (comportamiento histórico)
-//   - "html"     -> exporta sin preguntar
+//   - "html"     -> exporta HTML sin preguntar
+//   - "sarif"    -> exporta SARIF 2.1.0 (para CI / GitHub code scanning)
 //   - "none"/"no"-> no exporta ni pregunta (útil para automatización)
 //   - otro       -> avisa y no exporta
 func maybeExport(exportFmt, scanID string, fs []findings.Finding, target string) {
@@ -113,6 +114,11 @@ func maybeExport(exportFmt, scanID string, fs []findings.Finding, target string)
 		return
 	case "html":
 		// exporta abajo
+	case "sarif":
+		if err := exportSARIF(scanID, fs, target); err != nil {
+			ui.Fail("Error exportando SARIF: %v", err)
+		}
+		return
 	case "pdf":
 		ui.Warn("Export a PDF aún no soportado (el reporte se genera en HTML). Usa --export html y conviértelo, o abre el HTML e imprime a PDF.")
 		return
@@ -150,5 +156,24 @@ func exportHTMLReport(scanID string, fs []findings.Finding, target string) error
 	fmt.Println()
 	ui.OK("Reporte HTML generado: %s", ui.Bold(filename))
 	ui.Info("Ábrelo en tu navegador para ver el reporte completo.")
+	return nil
+}
+
+// exportSARIF genera el reporte en SARIF 2.1.0 (para CI / GitHub code scanning).
+func exportSARIF(scanID string, fs []findings.Finding, target string) error {
+	if target == "" && len(fs) > 0 {
+		target = fs[0].Target
+	}
+	data, err := report.BuildSARIF(scanID, target, fs)
+	if err != nil {
+		return err
+	}
+	filename := fmt.Sprintf("auditek-report-%s.sarif", scanID)
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return err
+	}
+	fmt.Println()
+	ui.OK("SARIF generado: %s", ui.Bold(filename))
+	ui.Info("Súbelo a GitHub code scanning o tu herramienta SARIF.")
 	return nil
 }
