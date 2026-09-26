@@ -152,6 +152,7 @@ var boolFlags = map[string]bool{
 	"--vv": true, "-vv": true,
 	"--vvv": true, "-vvv": true,
 	"--ct": true, "-ct": true,
+	"--osv": true, "-osv": true,
 }
 
 // reorderArgs mueve los flags (--x) al frente y deja los posicionales al final,
@@ -194,6 +195,7 @@ func runScanCmd(args []string) error {
 	focus := fs.String("focus", "", "solo scan subdomains: categorías separadas por coma (admin,dev,infra,remote-access,devops,web,sensitive,data) — si se pasa, ignora --depth")
 	wordlistFile := fs.String("wordlist", "", "solo scan subdomains: archivo externo (una entrada por línea) — ignora --depth y --focus")
 	ctLogs := fs.Bool("ct", false, "solo scan subdomains: además consulta Certificate Transparency (crt.sh) para descubrir subdominios reales")
+	osvLookup := fs.Bool("osv", false, "solo scan web: consulta OSV (osv.dev) por CVEs de dependencias en manifiestos expuestos (package.json/composer.json)")
 	execHook := fs.String("exec-hook", "", "ruta a un programa externo (tuyo) a ejecutar tras el scan pasivo; debe imprimir en stdout un array JSON con el mismo formato de 'auditek import' — ver README")
 	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | none (vacío = preguntar interactivamente)")
 	vLvl1 := fs.Bool("v", false, "verbose: sub-pasos y evidencia completa por hallazgo")
@@ -240,7 +242,7 @@ func runScanCmd(args []string) error {
 	case "network":
 		return runNetworkScan(target, *stealthMode, *ports, *profile, excluded, *rulesDir, *execHook, *exportFmt)
 	case "web":
-		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook, *exportFmt)
+		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook, *exportFmt, *osvLookup)
 	case "subdomains":
 		return runSubdomainScan(target, *depth, *focus, *wordlistFile, *ctLogs)
 	case "container":
@@ -387,7 +389,7 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string, useCT bool)
 	return nil
 }
 
-func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bool, rulesDir string, headers map[string]string, execHook string, exportFmt string) error {
+func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bool, rulesDir string, headers map[string]string, execHook string, exportFmt string, useOSV bool) error {
 	target = normalizeTarget(target)
 
 	ui.Title("Escaneo web", target)
@@ -402,9 +404,13 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 	if len(headers) > 0 {
 		ui.Detail(2, "headers custom: %d · delay %dms", len(headers), delayMs)
 	}
+	if useOSV {
+		ui.Detail(1, "OSV activo: se consultará osv.dev por dependencias en manifiestos expuestos")
+	}
 
 	ui.Step("Analizando %s", target)
 	scanner := engine.NewHTTPScanner(rules, delayMs, headers)
+	scanner.OSV = useOSV
 	engineFindings := scanner.Scan(target)
 	ui.OK("Análisis web completo · %d coincidencia(s) de regla", len(engineFindings))
 

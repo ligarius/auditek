@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"auditek/internal/cvedb"
+	"auditek/internal/osv"
 )
 
 // manifestJSON cubre los dos formatos que nos interesan (package.json y
@@ -33,7 +34,7 @@ var versionDigitsRe = regexp.MustCompile(`\d+\.\d+(\.\d+)?`)
 // cae en un rango vulnerable de nuestra cvedb, (b) constraints de versión
 // sueltas (^, ~, *, latest) que podrían instalar una versión futura sin
 // que nadie lo note.
-func AnalyzeDependencyManifest(body, target, source string) []Finding {
+func AnalyzeDependencyManifest(body, target, source, ecosystem string, useOSV bool) []Finding {
 	var m manifestJSON
 	if err := json.Unmarshal([]byte(body), &m); err != nil {
 		return nil
@@ -48,6 +49,8 @@ func AnalyzeDependencyManifest(body, target, source string) []Finding {
 	}
 
 	var findings []Finding
+	resolved := map[string]string{} // paquete -> versión aproximada, para OSV
+	seenCVE := map[string]bool{}     // paquete|CVE ya reportado (dedup local vs OSV)
 
 	for name, constraint := range deps {
 		if name == "php" {
@@ -74,8 +77,10 @@ func AnalyzeDependencyManifest(body, target, source string) []Finding {
 		if strings.Count(approxVersion, ".") == 1 {
 			approxVersion += ".0"
 		}
+		resolved[name] = approxVersion
 
 		for _, cve := range cvedb.Lookup(strings.ToLower(name), approxVersion) {
+			seenCVE[strings.ToLower(name)+"|"+cve.CVE] = true
 			findings = append(findings, Finding{
 				RuleID:    cve.CVE,
 				RuleName:  cve.Description + " (" + name + " " + approxVersion + ", aproximado desde \"" + constraint + "\")",
@@ -86,6 +91,34 @@ func AnalyzeDependencyManifest(body, target, source string) []Finding {
 				Timestamp: time.Now(),
 				Evidence:  source + ": \"" + name + "\": \"" + constraint + "\" (versión exacta instalada puede variar)",
 			})
+		}
+	}
+
+	// Consulta OSV (opt-in): cubre advisories de ecosistema (GHSA/CVE) con
+	// rangos precisos, mucho más allá del set curado local. Usa la versión
+	// aproximada del constraint; un fallo de red no rompe el scan.
+	if useOSV && ecosystem != "" && len(resolved) > 0 {
+		vulns, err := osv.ScanDependencies(ecosystem, resolved, 25*time.Second)
+		if err == nil {
+			for _, v := range vulns {
+				if seenCVE[strings.ToLower(v.Package)+"|"+v.CVE] {
+					continue // ya reportado por la cvedb local
+				}
+				summary := v.Summary
+				if summary == "" {
+					summary = "Vulnerabilidad conocida en " + v.Package + " " + v.Version + " (ver " + v.ID + ")."
+				}
+				findings = append(findings, Finding{
+					RuleID:    v.ID,
+					RuleName:  v.ID + ": " + v.Package + " " + v.Version + " (OSV, aproximado desde el manifiesto)",
+					Target:    target,
+					Severity:  v.Severity,
+					CVE:       []string{v.CVE},
+					Impact:    summary,
+					Timestamp: time.Now(),
+					Evidence:  source + ": \"" + v.Package + "\" ~ " + v.Version + " — OSV/osv.dev (" + ecosystem + "); versión exacta instalada puede variar",
+				})
+			}
 		}
 	}
 

@@ -24,6 +24,9 @@ type HTTPScanner struct {
 	// (ej. "Cookie: session=...", "Authorization: Bearer ...") en sitios que
 	// no son públicos o que requieren estar logueado para ver ciertas rutas.
 	Headers map[string]string
+	// OSV activa la consulta a osv.dev para dependencias encontradas en
+	// manifiestos expuestos (opt-in por --osv, porque contacta un tercero).
+	OSV bool
 }
 
 func NewHTTPScanner(rules []Rule, delayMs int, headers map[string]string) *HTTPScanner {
@@ -109,7 +112,11 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 		// Buscar manifiestos de dependencias (solo si 200)
 		for _, manifestPath := range []string{"/package.json", "/composer.json"} {
 			if mresp, err := s.doRequest("GET", baseURL+manifestPath); err == nil && mresp.StatusCode == 200 {
-				findings = append(findings, AnalyzeDependencyManifest(mresp.Body, baseURL+manifestPath, manifestPath)...)
+				ecosystem := "npm"
+				if manifestPath == "/composer.json" {
+					ecosystem = "Packagist"
+				}
+				findings = append(findings, AnalyzeDependencyManifest(mresp.Body, baseURL+manifestPath, manifestPath, ecosystem, s.OSV)...)
 			}
 		}
 
