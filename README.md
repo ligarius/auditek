@@ -82,11 +82,17 @@ Cuatro tipos de escaneo:
 | `--scope <file>` | — | con `--stealth` | scope.yaml del objetivo autorizado |
 | `-v` / `-vv` / `-vvv` | off | todos | nivel de detalle: fases + evidencia completa / red y reglas / traza de depuración |
 
-### `auditek report <scan-id> [--format console|json|html]`
+### `auditek report <scan-id> [--format console|json|html|sarif]`
 
 Lee un escaneo ya guardado en `~/.auditek/auditek.db` (SQLite) y lo muestra.
 El formato `html` genera un archivo `auditek-report-<scan-id>.html` con tu
-branding, pensado para enviar a un cliente.
+branding, pensado para enviar a un cliente. `console` y `html` muestran además
+la postura de riesgo agregada.
+
+El formato **`sarif`** genera `auditek-report-<scan-id>.sarif` (SARIF 2.1.0):
+el estándar que consume **GitHub code scanning** y muchas herramientas de CI.
+La severidad se mapea a `error` (critical/high), `warning` (medium) o `note`
+(low/info), y cada `RuleID` se registra una vez en `tool.driver.rules`.
 
 ### `auditek auth --token <token>`
 
