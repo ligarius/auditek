@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"auditek/internal/classify"
 	"auditek/internal/correlate"
 	"auditek/internal/findings"
 	"auditek/internal/report"
@@ -56,7 +57,7 @@ func displayFindings(fs []findings.Finding) {
 
 	for _, sev := range severityDisplayOrder {
 		for _, f := range bySeverity[sev] {
-			fmt.Printf("  %s %s  %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Bold(f.RuleName))
+			fmt.Printf("  %s %s  %s %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Gray("["+classify.Domain(f.RuleID)+"]"), ui.Bold(f.RuleName))
 			fmt.Printf("       %s %s\n", ui.Gray("target"), f.Target)
 			if f.CVE != "" {
 				fmt.Printf("       %s    %s\n", ui.Gray("cve"), ui.Yellow(f.CVE))

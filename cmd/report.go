@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"auditek/internal/classify"
 	"auditek/internal/correlate"
 	"auditek/internal/findings"
 	"auditek/internal/report"
@@ -75,7 +76,7 @@ func printConsole(scanID string, results []findings.Finding) error {
 	fmt.Println("  " + ui.Gray(ui.Rule(66)))
 	for _, sev := range severityDisplayOrder {
 		for _, f := range bySeverity[sev] {
-			fmt.Printf("  %s %s  %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Bold(f.RuleName))
+			fmt.Printf("  %s %s  %s %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Gray("["+classify.Domain(f.RuleID)+"]"), ui.Bold(f.RuleName))
 			fmt.Printf("       %s %s\n", ui.Gray("target"), f.Target)
 			if f.CVE != "" {
 				fmt.Printf("       %s    %s\n", ui.Gray("cve"), ui.Yellow(f.CVE))
@@ -105,9 +106,21 @@ func printConsole(scanID string, results []findings.Finding) error {
 }
 
 func printJSON(results []findings.Finding) error {
+	// Enriquece cada hallazgo con dominio y fase (derivados del RuleID) para que
+	// el JSON quede categorizado, sin depender del esquema de la BD.
+	type enriched struct {
+		findings.Finding
+		Domain string `json:"domain"`
+		Phase  string `json:"phase"`
+	}
+	out := make([]enriched, 0, len(results))
+	for _, f := range results {
+		d, p := classify.Classify(f.RuleID)
+		out = append(out, enriched{Finding: f, Domain: d, Phase: p})
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	return enc.Encode(results)
+	return enc.Encode(out)
 }
 
 func generateHTMLReport(scanID string, results []findings.Finding) error {
