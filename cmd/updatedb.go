@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"auditek/internal/cvedb"
+	"auditek/internal/ui"
 )
 
 // productKeywords mapea nuestros nombres internos de producto a la palabra
@@ -49,7 +50,7 @@ func runUpdateDBCmd(args []string) error {
 		fmt.Printf("Consultando NVD: %s...\n", keyword)
 		entries, err := cvedb.FetchFromNVD(keyword, nil)
 		if err != nil {
-			fmt.Printf("  ⚠ error con %s: %v (se omite)\n", product, err)
+			ui.Warn("error con %s: %v (se omite)", product, err)
 			continue
 		}
 		for idx := range entries {
@@ -67,6 +68,6 @@ func runUpdateDBCmd(args []string) error {
 		return fmt.Errorf("error guardando caché local: %w", err)
 	}
 
-	fmt.Printf("✓ %d CVEs guardados en ~/.auditek/cve-cache.json\n", len(all))
+	ui.OK("%d CVEs guardados en ~/.auditek/cve-cache.json", len(all))
 	return nil
 }

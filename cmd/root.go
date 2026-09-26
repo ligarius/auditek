@@ -65,6 +65,10 @@ Flags de scan:
   --wordlist <f>   solo scan subdomains: archivo externo, ignora --depth/--focus
   --exec-hook <f>  ruta a un programa externo tuyo; su salida JSON se integra al reporte (ver README)
   --export <fmt>   exporta el reporte sin preguntar: html | none (vacío = pregunta)
+  -v | -vv | -vvv  nivel de detalle: fases/evidencia | red y reglas | traza de depuración
+
+Salida:
+  El color se desactiva solo si la salida no es una terminal, con NO_COLOR o TERM=dumb.
 
 Flags de report:
   --format <fmt>   console|json|html`)

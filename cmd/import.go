@@ -12,6 +12,7 @@ import (
 
 	"auditek/internal/correlate"
 	"auditek/internal/findings"
+	"auditek/internal/ui"
 )
 
 // ExternalFinding es el contrato de datos para integrar resultados de
@@ -100,7 +101,7 @@ func runImportCmd(args []string) error {
 	for i, ef := range external {
 		f, reason := ef.ValidateAndConvert(scanID)
 		if reason != "" {
-			fmt.Printf("⚠  hallazgo #%d omitido: %s\n", i, reason)
+			ui.Warn("hallazgo #%d omitido: %s", i, reason)
 			skipped++
 			continue
 		}
@@ -117,8 +118,8 @@ func runImportCmd(args []string) error {
 		return err
 	}
 
-	fmt.Printf("Importados %d hallazgo(s) (%d omitidos) como %s\n", len(toSave), skipped, scanID)
-	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	ui.OK("Importados %d hallazgo(s) (%d omitidos) como %s", len(toSave), skipped, scanID)
+	ui.Info("Genera el reporte con: auditek report %s", scanID)
 	return nil
 }
 
@@ -131,7 +132,7 @@ func runImportCmd(args []string) error {
 // se avisa y el scan continúa con los hallazgos nativos únicamente; un
 // hook roto nunca debe tumbar el scan completo.
 func runExecHook(hookPath, target, scanID string) []findings.Finding {
-	fmt.Printf("Ejecutando hook externo: %s %s ...\n", hookPath, target)
+	ui.Detail(2, "comando del hook: %s %s", hookPath, target)
 
 	ctx, cancel := execHookContext()
 	defer cancel()
@@ -142,13 +143,13 @@ func runExecHook(hookPath, target, scanID string) []findings.Finding {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("⚠  hook externo falló (%v) — continuando solo con hallazgos nativos. stderr: %s\n", err, stderr.String())
+		ui.Warn("hook externo falló (%v) — continuando solo con hallazgos nativos. stderr: %s", err, stderr.String())
 		return nil
 	}
 
 	var external []ExternalFinding
 	if err := json.Unmarshal(stdout.Bytes(), &external); err != nil {
-		fmt.Printf("⚠  hook externo devolvió JSON inválido — continuando solo con hallazgos nativos: %v\n", err)
+		ui.Warn("hook externo devolvió JSON inválido — continuando solo con hallazgos nativos: %v", err)
 		return nil
 	}
 
@@ -156,7 +157,7 @@ func runExecHook(hookPath, target, scanID string) []findings.Finding {
 	for i, ef := range external {
 		f, reason := ef.ValidateAndConvert(scanID)
 		if reason != "" {
-			fmt.Printf("⚠  hallazgo #%d del hook omitido: %s\n", i, reason)
+			ui.Warn("hallazgo #%d del hook omitido: %s", i, reason)
 			continue
 		}
 		out = append(out, f)

@@ -8,85 +8,61 @@ import (
 
 	"auditek/internal/findings"
 	"auditek/internal/report"
+	"auditek/internal/ui"
 )
 
-// displayFindings muestra hallazgos en pantalla agrupados por severidad
+// severityDisplayOrder es el orden de impresión de hallazgos, de más a menos grave.
+var severityDisplayOrder = []string{"critical", "high", "medium", "low", "info"}
+
+// displayFindings muestra hallazgos agrupados por severidad, de más a menos
+// grave. Con -v (o más) muestra la evidencia completa; sin él la trunca.
 func displayFindings(fs []findings.Finding) {
 	if len(fs) == 0 {
-		fmt.Println("\n✓ No se encontraron hallazgos")
+		fmt.Println()
+		ui.OK("No se encontraron hallazgos")
 		return
 	}
 
-	fmt.Println("\n" + strings.Repeat("=", 70))
-	fmt.Println("HALLAZGOS ENCONTRADOS")
-	fmt.Println(strings.Repeat("=", 70))
-
-	// Agrupar por severidad
 	bySeverity := make(map[string][]findings.Finding)
-	severityOrder := []string{"critical", "high", "medium", "low", "info"}
-
 	for _, f := range fs {
 		bySeverity[f.Severity] = append(bySeverity[f.Severity], f)
 	}
 
-	for _, sev := range severityOrder {
-		items := bySeverity[sev]
-		if len(items) == 0 {
-			continue
-		}
+	fmt.Println()
+	fmt.Println("  " + ui.Bold("HALLAZGOS"))
+	fmt.Println("  " + ui.Gray(ui.Rule(66)))
 
-		prefix := ""
-		switch sev {
-		case "critical":
-			prefix = "🔴 CRÍTICO"
-		case "high":
-			prefix = "🟠 ALTO"
-		case "medium":
-			prefix = "🟡 MEDIO"
-		case "low":
-			prefix = "🔵 BAJO"
-		case "info":
-			prefix = "⚪ INFO"
-		}
-
-		fmt.Printf("\n%s (%d encontrados)\n", prefix, len(items))
-		fmt.Println(strings.Repeat("-", 70))
-
-		for i, f := range items {
-			fmt.Printf("%d. %s\n", i+1, f.RuleName)
-			fmt.Printf("   Target: %s\n", f.Target)
+	for _, sev := range severityDisplayOrder {
+		for _, f := range bySeverity[sev] {
+			fmt.Printf("  %s %s  %s\n", ui.SeverityDot(sev), ui.SeverityBadge(sev), ui.Bold(f.RuleName))
+			fmt.Printf("       %s %s\n", ui.Gray("target"), f.Target)
 			if f.CVE != "" {
-				fmt.Printf("   CVE: %s\n", f.CVE)
+				fmt.Printf("       %s    %s\n", ui.Gray("cve"), ui.Yellow(f.CVE))
 			}
 			if f.Impact != "" {
-				fmt.Printf("   Riesgo: %s\n", f.Impact)
+				fmt.Printf("       %s %s\n", ui.Gray("riesgo"), f.Impact)
 			}
 			if f.Evidence != "" {
 				evidence := f.Evidence
-				if len(evidence) > 100 {
-					evidence = evidence[:100] + "..."
+				if !ui.V(1) && len(evidence) > 100 {
+					evidence = evidence[:100] + "…"
 				}
-				fmt.Printf("   Evidence: %s\n", evidence)
+				fmt.Printf("       %s %s\n", ui.Gray("evidencia"), ui.Dim(evidence))
+			}
+			if ui.V(1) && !f.Timestamp.IsZero() {
+				fmt.Printf("       %s %s\n", ui.Gray("cuándo"), ui.Dim(f.Timestamp.Format("2006-01-02 15:04:05")))
 			}
 			fmt.Println()
 		}
 	}
 
-	fmt.Println(strings.Repeat("=", 70))
-	fmt.Println("📊 Resumen por severidad:")
-	sevLabels := map[string]string{
-		"critical": "🔴 Crítico",
-		"high":     "🟠 Alto",
-		"medium":   "🟡 Medio",
-		"low":      "🔵 Bajo",
-		"info":     "⚪ Info",
+	fmt.Println("  " + ui.Gray(ui.Rule(66)))
+	seg := make([]string, 0, len(severityDisplayOrder))
+	for _, sev := range severityDisplayOrder {
+		seg = append(seg, ui.SeverityCount(sev, len(bySeverity[sev])))
 	}
-	for _, sev := range severityOrder {
-		if n := len(bySeverity[sev]); n > 0 {
-			fmt.Printf("   %s: %d\n", sevLabels[sev], n)
-		}
-	}
-	fmt.Printf("Total: %d hallazgos encontrados\n", len(fs))
+	fmt.Printf("  %s   %s\n", ui.Bold("Resumen"), strings.Join(seg, ui.Gray(" · ")))
+	fmt.Printf("  %s     %s\n", ui.Bold("Total"), fmt.Sprintf("%d hallazgos", len(fs)))
 }
 
 // promptExportHTML pregunta si exportar a HTML
@@ -114,14 +90,14 @@ func maybeExport(exportFmt, scanID string, fs []findings.Finding, target string)
 	case "html":
 		// exporta abajo
 	case "pdf":
-		fmt.Println("Export a PDF aún no soportado (el reporte se genera en HTML). Usa --export html y conviértelo, o abre el HTML e imprime a PDF.")
+		ui.Warn("Export a PDF aún no soportado (el reporte se genera en HTML). Usa --export html y conviértelo, o abre el HTML e imprime a PDF.")
 		return
 	default:
-		fmt.Printf("Formato de --export no reconocido: %q (usa html | none)\n", exportFmt)
+		ui.Warn("Formato de --export no reconocido: %q (usa html | none)", exportFmt)
 		return
 	}
 	if err := exportHTMLReport(scanID, fs, target); err != nil {
-		fmt.Printf("Error exportando HTML: %v\n", err)
+		ui.Fail("Error exportando HTML: %v", err)
 	}
 }
 
@@ -147,7 +123,8 @@ func exportHTMLReport(scanID string, fs []findings.Finding, target string) error
 		return fmt.Errorf("error guardando reporte: %w", err)
 	}
 
-	fmt.Printf("\n📊 Reporte HTML generado: %s\n", filename)
-	fmt.Println("   Abre el archivo en tu navegador para ver el reporte completo.")
+	fmt.Println()
+	ui.OK("Reporte HTML generado: %s", ui.Bold(filename))
+	ui.Info("Ábrelo en tu navegador para ver el reporte completo.")
 	return nil
 }

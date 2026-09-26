@@ -41,8 +41,8 @@ func TestDisplayFindingsSummaryMatchesTotal(t *testing.T) {
 
 	out := captureStdout(func() { displayFindings(fs) })
 
-	// Total mostrado.
-	mTotal := regexp.MustCompile(`Total: (\d+) hallazgos encontrados`).FindStringSubmatch(out)
+	// Total mostrado (formato: "Total     N hallazgos").
+	mTotal := regexp.MustCompile(`Total\s+(\d+) hallazgos`).FindStringSubmatch(out)
 	if mTotal == nil {
 		t.Fatalf("no se encontró la línea Total en la salida:\n%s", out)
 	}
@@ -51,23 +51,17 @@ func TestDisplayFindingsSummaryMatchesTotal(t *testing.T) {
 		t.Errorf("Total mostrado = %d, want %d", total, len(fs))
 	}
 
-	// Suma del desglose por severidad (líneas "   <label>: N" tras el resumen).
-	sumLine := regexp.MustCompile(`:\s+(\d+)\s*$`)
+	// Suma del desglose por severidad: la línea "Resumen  N crítico · N alto · ..."
+	// contiene un número por cada severidad; deben sumar el total.
+	num := regexp.MustCompile(`\d+`)
 	sum := 0
-	inSummary := false
 	for _, line := range strings.Split(out, "\n") {
-		if strings.Contains(line, "Resumen por severidad") {
-			inSummary = true
-			continue
-		}
-		if strings.HasPrefix(line, "Total:") {
-			break
-		}
-		if inSummary {
-			if m := sumLine.FindStringSubmatch(line); m != nil {
-				n, _ := strconv.Atoi(m[1])
+		if strings.Contains(line, "Resumen") {
+			for _, m := range num.FindAllString(line, -1) {
+				n, _ := strconv.Atoi(m)
 				sum += n
 			}
+			break
 		}
 	}
 	if sum != len(fs) {
