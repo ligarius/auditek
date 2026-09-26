@@ -123,8 +123,10 @@ func crossReferenceVersions(deps map[string]string, target, source, ecosystem st
 	}
 
 	if useOSV && ecosystem != "" {
-		vulns, err := osv.ScanDependencies(ecosystem, deps, 25*time.Second)
-		if err == nil {
+		// Best-effort: si la red falla, ScanDependencies devuelve lo que haya en
+		// cache; iteramos igual (err solo indica que puede faltar algo reciente).
+		vulns, _ := osv.ScanDependencies(ecosystem, deps, 25*time.Second)
+		{
 			for _, v := range vulns {
 				if seenCVE[strings.ToLower(v.Package)+"|"+v.CVE] {
 					continue // ya reportado por la cvedb local
