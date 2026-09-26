@@ -284,6 +284,11 @@ versión precisos, mucho más allá del set curado local (hoy ~8 productos). Es
 opt-in porque contacta un tercero (api.osv.dev); solo envía nombres+versiones de
 paquetes ya leídos del archivo expuesto, y un fallo de red no rompe el scan.
 
+Las respuestas se **cachean** localmente en `~/.auditek/osv-cache.json` (TTL 24h,
+incluidos los paquetes sin vulnerabilidades): repetir scans dentro de la ventana
+no vuelve a consultar la red, y lo ya visto funciona **offline**. Si la red falla,
+auditek usa lo cacheado (best-effort) en vez de abortar.
+
 **Archivos de CI/CD expuestos**: `.gitlab-ci.yml`, `.travis.yml`,
 `.circleci/config.yml`, `Jenkinsfile`, y varios paths comunes de GitHub
 Actions — revelan la topología del pipeline y a veces secretos mal
@@ -571,7 +576,7 @@ Cada límite de arriba tiene un camino de mejora concreto, ordenado por impacto:
 | Web sin crawling ni fuzzing | Spider ligero para descubrir rutas antes de aplicar reglas; fuzzing pasivo de parámetros de bajo riesgo. | Alto |
 | Container solo estático | Inspección de imagen construida y sus capas (SCA de paquetes del SO). | Alto |
 | AD solo recon | Profundizar recon: LDAP anonymous → RootDSE (dominio/DC/functional level), CLDAP netlogon, extracción de dominio vía NTLMSSP en SMB. La parte autenticada sigue en NetExec vía `nxc-adapter`. | Medio |
-| OSV depende de red por scan | Cache local de respuestas OSV/NVD con TTL, para scans repetidos y modo offline. | Bajo |
+| OSV depende de red por scan | Resuelto: cache local `~/.auditek/osv-cache.json` (TTL 24h) con fallback offline. Pendiente: mismo cache para NVD. | Bajo |
 | Correlación solo intra-scan | Correlacionar hallazgos entre scans del mismo objetivo/cliente (persistidos en la BD). | Medio |
 | Integración CI | Ya hay SARIF; sumar una GitHub Action de ejemplo que corra auditek y suba el `.sarif`. | Bajo |
 

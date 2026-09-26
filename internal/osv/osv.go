@@ -78,48 +78,73 @@ func ScanDependencies(ecosystem string, deps map[string]string, timeout time.Dur
 	if timeout <= 0 {
 		timeout = 25 * time.Second
 	}
+
+	now := time.Now()
+	cacheMu.Lock()
+	cache := loadCache()
+	cacheMu.Unlock()
+
+	// Separa lo que ya está fresco en cache de lo que hay que consultar.
+	var out []Vuln
+	var miss []string
+	for name, ver := range deps {
+		if e, ok := cache[cacheKey(ecosystem, name, ver)]; ok && fresh(e, now, cacheTTL) {
+			out = append(out, e.Vulns...)
+		} else {
+			miss = append(miss, name)
+		}
+	}
+	if len(miss) == 0 {
+		return out, nil // todo servido desde cache (sin red)
+	}
+	sort.Strings(miss)
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	names := make([]string, 0, len(deps))
-	for n := range deps {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-
-	queries := make([]batchQuery, len(names))
-	for i, n := range names {
+	queries := make([]batchQuery, len(miss))
+	for i, n := range miss {
 		queries[i] = batchQuery{Package: batchPkg{Name: n, Ecosystem: ecosystem}, Version: deps[n]}
 	}
-
 	idsPerQuery, err := queryBatch(ctx, queries)
 	if err != nil {
-		return nil, err
+		// Sin red: devolvemos lo cacheado (best-effort), sin romper el scan.
+		return out, err
 	}
 
-	var out []Vuln
-	seen := map[string]bool{}
+	fetched := map[string][]Vuln{}
 	for i, ids := range idsPerQuery {
-		if i >= len(names) {
+		if i >= len(miss) {
 			break
 		}
-		name := names[i]
+		name := miss[i]
+		fetched[name] = nil // registra "consultado" aunque salga limpio
+		seen := map[string]bool{}
 		for _, id := range ids {
-			key := name + "|" + id
-			if seen[key] {
+			if seen[id] {
 				continue
 			}
-			seen[key] = true
-
+			seen[id] = true
 			v := Vuln{ID: id, CVE: id, Package: name, Version: deps[name], Severity: "medium"}
 			if d, derr := getVuln(ctx, id); derr == nil {
 				v.Summary = summaryOf(d)
 				v.Severity = severityOf(d)
 				v.CVE = pickCVE(d.Aliases, id)
 			}
+			fetched[name] = append(fetched[name], v)
 			out = append(out, v)
 		}
 	}
+
+	// Persiste lo consultado (incl. paquetes limpios) con timestamp.
+	cacheMu.Lock()
+	cache = loadCache()
+	for name, vulns := range fetched {
+		cache[cacheKey(ecosystem, name, deps[name])] = cacheEntry{FetchedAt: now, Vulns: vulns}
+	}
+	saveCache(cache)
+	cacheMu.Unlock()
+
 	return out, nil
 }
 
