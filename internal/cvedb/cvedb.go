@@ -30,14 +30,15 @@ func loadedCache() []Entry {
 // bien documentados — no es un sync de NVD/OSV completo. Ver README para el
 // alcance real y cómo se piensa expandir (comando `update-db` futuro).
 type Entry struct {
-	Product     string // nombre normalizado, ej. "apache", "nginx", "openssh", "jquery"
-	MinVersion  string // vulnerable si version >= MinVersion (inclusivo); vacío = sin piso
-	MaxVersion  string // vulnerable si version < MaxVersion (exclusivo)
-	ExactMatch  string // alternativa a MaxVersion: solo esta versión exacta
-	CVE         string
-	Severity    string
-	Impact      string
-	Description string
+	Product        string // nombre normalizado, ej. "apache", "nginx", "openssh", "jquery"
+	MinVersion     string // vulnerable si version >= MinVersion (inclusivo); vacío = sin piso
+	MaxVersion     string // vulnerable si version < MaxVersion (exclusivo); vacío = sin techo
+	MaxVersionIncl string // vulnerable si version <= MaxVersionIncl (inclusivo); alternativa a MaxVersion
+	ExactMatch     string // solo esta versión exacta (ignora los rangos)
+	CVE            string
+	Severity       string
+	Impact         string
+	Description    string
 }
 
 var db = []Entry{
@@ -120,44 +121,109 @@ var db = []Entry{
 // Revisa primero el set curado a mano, y luego el caché local descargado de
 // NVD (si existe, vía `auditek update-db`).
 func Lookup(product, version string) []Entry {
-	product = strings.ToLower(product)
+	product = strings.ToLower(strings.TrimSpace(product))
+	version = strings.TrimSpace(version)
 	var matches []Entry
 
-	for _, e := range append(append([]Entry{}, db...), loadedCache()...) {
-		if e.Product != product {
+	for _, e := range allEntries() {
+		if strings.ToLower(e.Product) != product {
 			continue
 		}
-		if e.ExactMatch != "" && e.ExactMatch == version {
-			matches = append(matches, e)
-			continue
-		}
-		if e.MinVersion != "" && versionLess(version, e.MinVersion) {
-			continue // versión más vieja que el piso del rango vulnerable
-		}
-		if e.MaxVersion != "" && versionLess(version, e.MaxVersion) {
+		if matchesVersion(e, version) {
 			matches = append(matches, e)
 		}
 	}
 	return matches
 }
 
-// versionLess compara versiones tipo "1.20.1" de forma simple (no soporta
-// sufijos como -beta, rc, etc. — suficiente para el set curado de arriba).
-func versionLess(a, b string) bool {
-	pa := strings.Split(a, ".")
-	pb := strings.Split(b, ".")
+func allEntries() []Entry {
+	cache := loadedCache()
+	out := make([]Entry, 0, len(db)+len(cache))
+	out = append(out, db...)
+	out = append(out, cache...)
+	return out
+}
 
-	for i := 0; i < len(pa) || i < len(pb); i++ {
-		na, nb := 0, 0
-		if i < len(pa) {
-			na, _ = strconv.Atoi(pa[i])
-		}
-		if i < len(pb) {
-			nb, _ = strconv.Atoi(pb[i])
-		}
-		if na != nb {
-			return na < nb
+// matchesVersion decide si `version` cae dentro del rango vulnerable de e.
+// ExactMatch tiene prioridad. Con rangos, la versión debe satisfacer TODOS los
+// límites presentes (>= MinVersion, < MaxVersion, <= MaxVersionIncl). Una Entry
+// sin ExactMatch ni ningún límite NO matchea, para no marcar toda versión del
+// producto como vulnerable (antes, una Entry con solo MinVersion nunca matcheaba).
+func matchesVersion(e Entry, version string) bool {
+	if e.ExactMatch != "" {
+		return compareVersions(version, e.ExactMatch) == 0
+	}
+	bounded := false
+	if e.MinVersion != "" {
+		bounded = true
+		if compareVersions(version, e.MinVersion) < 0 {
+			return false
 		}
 	}
-	return false
+	if e.MaxVersion != "" {
+		bounded = true
+		if compareVersions(version, e.MaxVersion) >= 0 {
+			return false
+		}
+	}
+	if e.MaxVersionIncl != "" {
+		bounded = true
+		if compareVersions(version, e.MaxVersionIncl) > 0 {
+			return false
+		}
+	}
+	return bounded
+}
+
+// compareVersions compara versiones tipo "1.20.1", "7.4p1", "4.92".
+// Devuelve -1 si a<b, 0 si son iguales, 1 si a>b. Cada segmento separado por
+// "." se compara primero por su prefijo numérico y, en empate, por el sufijo
+// alfanumérico ("" < "p1", así "7.4" < "7.4p1"). Los segmentos ausentes cuentan
+// como {0, ""}, de modo que "7.4" == "7.4.0". No implementa la precedencia de
+// pre-releases de SemVer (un sufijo siempre ordena por encima del vacío), lo
+// que es correcto para versiones de parche tipo OpenSSH ("7.4p1").
+func compareVersions(a, b string) int {
+	sa := strings.Split(a, ".")
+	sb := strings.Split(b, ".")
+	n := len(sa)
+	if len(sb) > n {
+		n = len(sb)
+	}
+	for i := 0; i < n; i++ {
+		var fa, fb string
+		if i < len(sa) {
+			fa = sa[i]
+		}
+		if i < len(sb) {
+			fb = sb[i]
+		}
+		na, ra := splitNumSuffix(fa)
+		nb, rb := splitNumSuffix(fb)
+		if na != nb {
+			if na < nb {
+				return -1
+			}
+			return 1
+		}
+		if ra != rb {
+			if ra < rb {
+				return -1
+			}
+			return 1
+		}
+	}
+	return 0
+}
+
+// splitNumSuffix parte "4p1" en (4, "p1"), "20" en (20, ""), "" en (0, "").
+func splitNumSuffix(s string) (int, string) {
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	num := 0
+	if i > 0 {
+		num, _ = strconv.Atoi(s[:i])
+	}
+	return num, s[i:]
 }

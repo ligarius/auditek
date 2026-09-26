@@ -144,7 +144,7 @@ func normalizeNVD(product string, r nvdResponse) []Entry {
 					if cpe.VersionEndExcluding != "" {
 						e.MaxVersion = cpe.VersionEndExcluding
 					} else if cpe.VersionEndIncluding != "" {
-						e.MaxVersion = cpe.VersionEndIncluding + ".999" // aproximación: incluir la versión tope
+						e.MaxVersionIncl = cpe.VersionEndIncluding // techo inclusivo (<=), sin el hack ".999"
 					}
 					entries = append(entries, e)
 				}
