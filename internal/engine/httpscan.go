@@ -134,9 +134,13 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 			{"/composer.lock", "Packagist"},
 			{"/package-lock.json", "npm"},
 			{"/yarn.lock", "npm"},
+			{"/pnpm-lock.yaml", "npm"},
 			{"/Pipfile.lock", "PyPI"},
 			{"/requirements.txt", "PyPI"},
+			{"/poetry.lock", "PyPI"},
 			{"/go.mod", "Go"},
+			{"/go.sum", "Go"},
+			{"/Gemfile.lock", "RubyGems"},
 		} {
 			if mresp, err := s.doRequest("GET", baseURL+lf.path); err == nil && mresp.StatusCode == 200 {
 				findings = append(findings, AnalyzeLockfile(mresp.Body, baseURL+lf.path, lf.path, lf.eco, s.OSV)...)
