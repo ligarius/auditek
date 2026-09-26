@@ -20,10 +20,11 @@ import (
 	"auditek/internal/progress"
 	"auditek/internal/scope"
 	"auditek/internal/subdomain"
+	"auditek/internal/ui"
 )
 
 func confirmAuthorization(target string) bool {
-	fmt.Printf("⚠  Vas a escanear: %s\n", target)
+	ui.Warn("Vas a escanear: %s", ui.Bold(target))
 	fmt.Println("   Confirma que tienes autorización para evaluar este objetivo.")
 	fmt.Print("   ¿Continuar? (s/n): ")
 
@@ -147,6 +148,9 @@ var boolFlags = map[string]bool{
 	"--stealth": true, "-stealth": true,
 	"--yes": true, "-yes": true,
 	"--internal-yes": true, "-internal-yes": true,
+	"--v": true, "-v": true,
+	"--vv": true, "-vv": true,
+	"--vvv": true, "-vvv": true,
 }
 
 // reorderArgs mueve los flags (--x) al frente y deja los posicionales al final,
@@ -190,7 +194,19 @@ func runScanCmd(args []string) error {
 	wordlistFile := fs.String("wordlist", "", "solo scan subdomains: archivo externo (una entrada por línea) — ignora --depth y --focus")
 	execHook := fs.String("exec-hook", "", "ruta a un programa externo (tuyo) a ejecutar tras el scan pasivo; debe imprimir en stdout un array JSON con el mismo formato de 'auditek import' — ver README")
 	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | none (vacío = preguntar interactivamente)")
+	vLvl1 := fs.Bool("v", false, "verbose: sub-pasos y evidencia completa por hallazgo")
+	vLvl2 := fs.Bool("vv", false, "más verbose: inventario de red/HTTP (hosts, puertos, reglas)")
+	vLvl3 := fs.Bool("vvv", false, "aún más verbose: traza de depuración (banners crudos, correlación)")
 	fs.Parse(args)
+
+	switch {
+	case *vLvl3:
+		ui.SetVerbosity(3)
+	case *vLvl2:
+		ui.SetVerbosity(2)
+	case *vLvl1:
+		ui.SetVerbosity(1)
+	}
 
 	rest := fs.Args()
 	if len(rest) < 2 {
@@ -254,7 +270,7 @@ func parseHeaders(raw []string, cookie string) map[string]string {
 	for _, r := range raw {
 		parts := strings.SplitN(r, ":", 2)
 		if len(parts) != 2 {
-			fmt.Printf("⚠  --header ignorado (formato esperado 'Nombre: Valor'): %q\n", r)
+			ui.Warn("--header ignorado (formato esperado 'Nombre: Valor'): %q", r)
 			continue
 		}
 		h[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
@@ -296,8 +312,11 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
 		}
 	}
 
-	fmt.Printf("Resolviendo subdominios contra %s — %s...\n", domain, source)
+	ui.Title("Escaneo de subdominios", domain)
+	ui.Step("Resolviendo subdominios %s", ui.Gray("· "+source))
+	ui.Detail(2, "wordlist: %d entradas · concurrencia 20 · timeout 3s", len(wordlist))
 	results := subdomain.Enumerate(domain, wordlist, 20, 3*time.Second)
+	ui.OK("Resolución completa · %d subdominio(s) con respuesta", len(results))
 
 	store, err := findings.Open()
 	if err != nil {
@@ -336,22 +355,32 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
 		return err
 	}
 
-	fmt.Printf("Escaneo completo (%s): %d subdominio(s) encontrado(s)\n", scanID, len(results))
-	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	fmt.Println()
+	ui.OK("Escaneo completo %s · %d subdominio(s) encontrado(s)", ui.Gray("("+scanID+")"), len(results))
+	ui.Info("Genera el reporte con: auditek report %s", scanID)
 	return nil
 }
 
 func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bool, rulesDir string, headers map[string]string, execHook string, exportFmt string) error {
 	target = normalizeTarget(target)
 
+	ui.Title("Escaneo web", target)
+
+	ui.Step("Cargando reglas")
 	rules, err := engine.LoadRules(rulesDir)
 	if err != nil {
 		return fmt.Errorf("error cargando reglas: %w", err)
 	}
 	rules = engine.FilterRules(rules, excluded)
+	ui.Detail(1, "%d reglas activas desde %q (excluidas: %d)", len(rules), rulesDir, len(excluded))
+	if len(headers) > 0 {
+		ui.Detail(2, "headers custom: %d · delay %dms", len(headers), delayMs)
+	}
 
+	ui.Step("Analizando %s", target)
 	scanner := engine.NewHTTPScanner(rules, delayMs, headers)
 	engineFindings := scanner.Scan(target)
+	ui.OK("Análisis web completo · %d coincidencia(s) de regla", len(engineFindings))
 
 	store, err := findings.Open()
 	if err != nil {
@@ -378,10 +407,15 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 	}
 
 	if execHook != "" {
-		toSave = append(toSave, runExecHook(execHook, target, scanID)...)
+		ui.Step("Ejecutando hook externo: %s", execHook)
+		hookFindings := runExecHook(execHook, target, scanID)
+		ui.Detail(1, "hook aportó %d hallazgo(s)", len(hookFindings))
+		toSave = append(toSave, hookFindings...)
 	}
 
-	toSave = append(toSave, correlate.Correlate(scanID, toSave)...)
+	correlated := correlate.Correlate(scanID, toSave)
+	ui.Detail(3, "correlación aportó %d hallazgo(s) derivado(s)", len(correlated))
+	toSave = append(toSave, correlated...)
 
 	if err := store.SaveFindings(scanID, toSave); err != nil {
 		return err
@@ -392,8 +426,9 @@ func runWebScan(target string, stealth bool, delayMs int, excluded map[string]bo
 
 	// Ofrecer exportar HTML
 	maybeExport(exportFmt, scanID, toSave, target)
-	fmt.Printf("Escaneo completo (%s): %d hallazgos\n", scanID, len(toSave))
-	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	fmt.Println()
+	ui.OK("Escaneo completo %s · %d hallazgos", ui.Gray("("+scanID+")"), len(toSave))
+	ui.Info("Genera el reporte con: auditek report %s", scanID)
 
 	return nil
 }
@@ -454,6 +489,8 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 		return fmt.Errorf("target inválido: %w", err)
 	}
 
+	ui.Title("Escaneo de red", target)
+
 	// Si --ports no se especificó (usa default "top100"), usar profile
 	var ports []int
 	if portsSpec != "top100" {
@@ -466,7 +503,7 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 		// Usar profile
 		prof := netscan.GetProfile(profileName)
 		ports = prof.Ports
-		fmt.Printf("Perfil: %s — %s\n", prof.Name, prof.Description)
+		ui.Detail(1, "perfil: %s — %s", prof.Name, prof.Description)
 	}
 
 	prof := netscan.GetProfile(profileName)
@@ -475,11 +512,13 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 		Concurrency: prof.Concurrency,
 	}
 
-	fmt.Printf("Escaneando %d host(s), %d puerto(s)...\n", len(hosts), len(ports))
+	ui.Step("Escaneando puertos %s", ui.Gray(fmt.Sprintf("· %d host(s) × %d puerto(s)", len(hosts), len(ports))))
+	ui.Detail(2, "concurrencia %d · timeout %v", prof.Concurrency, prof.Timeout)
+	ui.Detail(3, "lista de puertos: %v", ports)
 
 	// Crear barra de progreso
 	totalChecks := len(hosts) * len(ports)
-	bar := progress.NewProgressBar(totalChecks)
+	bar := progress.NewProgressBar("Puertos", "abiertos", totalChecks)
 	foundPorts := 0
 
 	// Callback para actualizar progreso
@@ -495,16 +534,21 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 		foundPorts += len(hostPorts)
 	}
 
+	bar.Update(totalChecks, foundPorts) // fija el conteo final antes del resumen
 	bar.Done()
-	fmt.Printf("Escaneo de puertos completo: %d puertos abiertos\n", foundPorts)
 
 	isInternal := netscan.IsPrivateTarget(target)
+	if isInternal {
+		ui.Detail(1, "objetivo en rango privado/interno — se marca superficie de movimiento lateral")
+	}
 
+	ui.Step("Identificando servicios y CVEs")
 	tcpRules, err := engine.LoadRules(rulesDir)
 	if err != nil {
 		return fmt.Errorf("error cargando reglas: %w", err)
 	}
 	tcpRules = engine.FilterRules(tcpRules, excluded)
+	ui.Detail(1, "%d reglas TCP activas (excluidas: %d)", len(tcpRules), len(excluded))
 	tcpScanner := engine.NewTCPScanner(tcpRules)
 
 	allowedPorts := map[int]bool{}
@@ -533,6 +577,7 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 
 		for _, p := range ports {
 			totalOpen++
+			ui.Detail(3, "%s:%d abierto (%s) banner=%q", host, p.Port, p.Service, p.Banner)
 			ruleName := fmt.Sprintf("Puerto abierto: %d (%s)", p.Port, p.Service)
 			evidence := p.Banner
 			if p.Banner == "" && behindCDN {
@@ -583,10 +628,15 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 	}
 
 	if execHook != "" {
-		toSave = append(toSave, runExecHook(execHook, target, scanID)...)
+		ui.Step("Ejecutando hook externo: %s", execHook)
+		hookFindings := runExecHook(execHook, target, scanID)
+		ui.Detail(1, "hook aportó %d hallazgo(s)", len(hookFindings))
+		toSave = append(toSave, hookFindings...)
 	}
 
-	toSave = append(toSave, correlate.Correlate(scanID, toSave)...)
+	correlated := correlate.Correlate(scanID, toSave)
+	ui.Detail(3, "correlación aportó %d hallazgo(s) derivado(s)", len(correlated))
+	toSave = append(toSave, correlated...)
 
 	if err := store.SaveFindings(scanID, toSave); err != nil {
 		return err
@@ -598,8 +648,9 @@ func runNetworkScan(target string, stealth bool, portsSpec string, profileName s
 	// Ofrecer exportar HTML
 	maybeExport(exportFmt, scanID, toSave, target)
 
-	fmt.Printf("Escaneo completo (%s): %d puertos abiertos\n", scanID, totalOpen)
-	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	fmt.Println()
+	ui.OK("Escaneo completo %s · %d puertos abiertos", ui.Gray("("+scanID+")"), totalOpen)
+	ui.Info("Genera el reporte con: auditek report %s", scanID)
 
 	return nil
 }
@@ -617,8 +668,10 @@ func runContainerScan(target string, excluded map[string]bool, exportFmt string)
 		return fmt.Errorf("error leyendo Dockerfile: %w", err)
 	}
 
-	fmt.Printf("\n🐳 Analizando Dockerfile: %s\n", dockerfilePath)
+	ui.Title("Análisis de contenedor", dockerfilePath)
+	ui.Step("Analizando Dockerfile")
 	issues := container.ScanDockerfile(string(content))
+	ui.Detail(1, "%d issue(s) detectada(s) antes de filtrar exclusiones", len(issues))
 
 	store, err := findings.Open()
 	if err != nil {
@@ -665,8 +718,9 @@ func runContainerScan(target string, excluded map[string]bool, exportFmt string)
 
 	maybeExport(exportFmt, scanID, toSave, dockerfilePath)
 
-	fmt.Printf("Escaneo completo (%s): %d hallazgo(s)\n", scanID, len(toSave))
-	fmt.Printf("Genera el reporte con: auditek report %s\n", scanID)
+	fmt.Println()
+	ui.OK("Escaneo completo %s · %d hallazgo(s)", ui.Gray("("+scanID+")"), len(toSave))
+	ui.Info("Genera el reporte con: auditek report %s", scanID)
 	return nil
 }
 

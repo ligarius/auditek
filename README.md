@@ -27,10 +27,23 @@ go build -o auditek .
 # Escaneo de red (puertos + servicios de protocolo real: Redis, FTP, SMTP...)
 ./auditek scan network 192.168.1.0/24
 
+# Descubrimiento de subdominios (resolución DNS)
+./auditek scan subdomains tusitio.cl
+
+# Análisis estático de un Dockerfile
+./auditek scan container ./Dockerfile
+
+# Más detalle en pantalla (-v, -vv, -vvv) y export directo del reporte
+./auditek scan web https://tusitio.cl -vv --export html
+
 # Ver el resultado
 ./auditek report <scan-id>
 ./auditek report <scan-id> --format html   # reporte con branding, para compartir
 ```
+
+La salida usa color y una barra de progreso con ETA; el color se desactiva
+solo cuando la salida no es una terminal (pipe/redirección), con `NO_COLOR`
+o `TERM=dumb`. Con `-v`/`-vv`/`-vvv` se añaden líneas de detalle progresivo.
 
 Antes de cada escaneo (salvo `--stealth`), Auditek pide confirmación de que
 tienes autorización sobre el objetivo. Usa `--yes` para saltar el prompt en
@@ -38,19 +51,34 @@ scripts/CI.
 
 ## Comandos
 
-### `auditek scan [network|web] <target> [flags]`
+### `auditek scan [network|web|subdomains|container] <target> [flags]`
 
-| Flag | Default | Qué hace |
-|---|---|---|
-| `--yes` | off | omite la confirmación de autorización |
-| `--delay <ms>` | 150 | pausa entre requests HTTP (solo `scan web`); `0` = sin límite |
-| `--ports <spec>` | `top100` | puertos a escanear (solo `scan network`): `top100`, `80,443`, `1-1000`, o combinado `1-100,8080` |
-| `--exclude-rule <ids>` | — | IDs de reglas a omitir, separados por coma |
-| `--rules <dir>` | `rules` | directorio de reglas a cargar — apunta a tu propio set en vez del embebido |
-| `--stealth` | off | modo evasión avanzado (ver abajo) |
-| `--scope <file>` | — | scope.yaml requerido junto con `--stealth` |
+Cuatro tipos de escaneo:
 
-`scan container` está reservado pero **no implementado todavía**.
+- **`network <ip|CIDR>`** — escaneo de puertos + servicios de protocolo real (reglas TCP) + CVEs por banner. Sobre rangos privados activa la confirmación reforzada y marca superficie de movimiento lateral (ver más abajo).
+- **`web <url>`** — reglas HTTP (misconfiguraciones, exposición, compliance), CVEs por fingerprint de versión, SRI/supply chain y chequeos de certificado TLS.
+- **`subdomains <dominio>`** — enumeración por resolución DNS (ver sección dedicada).
+- **`container <Dockerfile|dir>`** — análisis estático de un Dockerfile (malas prácticas y secretos).
+
+| Flag | Default | Aplica a | Qué hace |
+|---|---|---|---|
+| `--yes` | off | todos | omite la confirmación de autorización |
+| `--internal-yes` | off | network | omite la confirmación reforzada de red privada (usar con cuidado) |
+| `--ports <spec>` | `top100` | network | `top100`, `80,443`, `1-1000`, o combinado `1-100,8080` |
+| `--profile <p>` | `normal` | network | perfil de escaneo: `fast` \| `normal` \| `deep` |
+| `--delay <ms>` | 150 | web | pausa entre requests HTTP; `0` = sin límite |
+| `--header <val>` | — | web | header custom, repetible (ej. `"Authorization: Bearer xyz"`) |
+| `--cookie <val>` | — | web | cookie de sesión (ej. `"session=abc123"`) |
+| `--depth <d>` | `normal` | subdomains | `fast` \| `normal` \| `deep` |
+| `--focus <cats>` | — | subdomains | categorías separadas por coma (ignora `--depth`) |
+| `--wordlist <f>` | — | subdomains | wordlist externa (ignora `--depth`/`--focus`) |
+| `--exclude-rule <ids>` | — | network/web | IDs de reglas a omitir, separados por coma |
+| `--rules <dir>` | `rules` | network/web | directorio de reglas a cargar en vez del embebido |
+| `--exec-hook <f>` | — | network/web | binario externo tuyo cuya salida JSON se integra al reporte (ver más abajo) |
+| `--export <fmt>` | — | todos | exporta el reporte sin preguntar: `html` \| `none` (vacío = pregunta interactivamente) |
+| `--stealth` | off | network/web | modo evasión avanzado (requiere `--scope` + auth) |
+| `--scope <file>` | — | con `--stealth` | scope.yaml del objetivo autorizado |
+| `-v` / `-vv` / `-vvv` | off | todos | nivel de detalle: fases + evidencia completa / red y reglas / traza de depuración |
 
 ### `auditek report <scan-id> [--format console|json|html]`
 
@@ -365,7 +393,9 @@ Sin ambos, `--stealth` falla antes de enviar un solo paquete.
 
 - **CVE db pequeña**: 9 entradas curadas a mano. `update-db` la expande vía
   NVD, pero la cobertura real de tu stack específico puede seguir siendo baja.
-- **`scan container` no implementado** — reservado en el CLI, sin lógica detrás.
+- **`scan container` es análisis estático** — parsea el Dockerfile en busca de
+  malas prácticas y secretos; no construye ni inspecciona la imagen resultante
+  ni sus capas.
 - **Sin protocolo binario** (MongoDB, MySQL) — el motor TCP solo soporta
   protocolos de texto plano por ahora.
 - El target sin protocolo explícito (`scan web midominio.cl` sin `http://`)
@@ -376,14 +406,20 @@ Sin ambos, `--stealth` falla antes de enviar un solo paquete.
 ## Estructura del proyecto
 
 ```
-cmd/            comandos CLI (auth, scan, report, update-db)
+cmd/            comandos CLI (auth, scan, report, update-db, import) + display
 internal/
-  engine/       motor de reglas HTTP + TCP, matchers, fingerprinting
+  engine/       motor de reglas HTTP + TCP, matchers, fingerprinting, SRI, supply chain
   cvedb/        base de datos curada + cliente NVD
-  netscan/      escaneo de puertos
+  netscan/      escaneo de puertos, perfiles, rangos/CIDR, detección de CDN
+  subdomain/    enumeración de subdominios por DNS
+  container/    análisis estático de Dockerfile
+  correlate/    correlación de hallazgos ("hasta dónde podría llegar")
   scope/        validación de scope.yaml para modo stealth
   auth/         JWT para modo stealth
   findings/     persistencia SQLite
   report/       generación de reportes HTML
+  progress/     barra de progreso de la terminal
+  ui/           estilo de la salida en terminal (color, badges, verbose)
 rules/          reglas YAML (exposure/, compliance/, thirdparty/)
+exploits/       módulos externos opcionales para --exec-hook (binarios separados)
 ```

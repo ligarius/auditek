@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"auditek/internal/auth"
+	"auditek/internal/ui"
 )
 
 func runAuthCmd(args []string) error {
@@ -20,6 +21,6 @@ func runAuthCmd(args []string) error {
 		return err
 	}
 
-	fmt.Println("✓ Autenticación exitosa — credenciales guardadas en ~/.auditek/credentials.json")
+	ui.OK("Autenticación exitosa — credenciales guardadas en ~/.auditek/credentials.json")
 	return nil
 }
