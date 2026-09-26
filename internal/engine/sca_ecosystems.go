@@ -107,6 +107,117 @@ func parsePipfileLock(body string) map[string]string {
 	return out
 }
 
+// --- go.sum (Go) — todas las versiones (incl. transitivas) con hash ---
+
+func parseGoSum(body string) map[string]string {
+	out := map[string]string{}
+	sc := bufio.NewScanner(strings.NewReader(body))
+	for sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		mod := fields[0]
+		ver := strings.TrimSuffix(fields[1], "/go.mod") // dos líneas por módulo; normalizamos
+		if !strings.Contains(mod, "/") {
+			continue
+		}
+		v := normalizeLockVersion(ver)
+		if v == "" || v[0] < '0' || v[0] > '9' {
+			continue
+		}
+		if _, ok := out[mod]; !ok {
+			out[mod] = v
+		}
+	}
+	return out
+}
+
+// --- Gemfile.lock (RubyGems) — specs directas bajo GEM ---
+
+var gemSpecRe = regexp.MustCompile(`^    ([A-Za-z0-9._-]+) \(([0-9][^)]*)\)\s*$`)
+
+func parseGemfileLock(body string) map[string]string {
+	out := map[string]string{}
+	sc := bufio.NewScanner(strings.NewReader(body))
+	for sc.Scan() {
+		// Las specs directas tienen 4 espacios de indent: "    name (x.y.z)".
+		// Sus dependencias llevan 6 espacios, así que el ancla ^    ... no matchea.
+		if m := gemSpecRe.FindStringSubmatch(sc.Text()); m != nil {
+			addLockDep(out, m[1], m[2])
+		}
+	}
+	return out
+}
+
+// --- poetry.lock (PyPI) — bloques [[package]] con name/version ---
+
+func parsePoetryLock(body string) map[string]string {
+	out := map[string]string{}
+	sc := bufio.NewScanner(strings.NewReader(body))
+	var name, version string
+	flush := func() {
+		if name != "" && version != "" {
+			addLockDep(out, name, version)
+		}
+		name, version = "", ""
+	}
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		switch {
+		case line == "[[package]]":
+			flush()
+		case strings.HasPrefix(line, "name = "):
+			name = tomlString(line[len("name = "):])
+		case strings.HasPrefix(line, "version = "):
+			version = tomlString(line[len("version = "):])
+		}
+	}
+	flush()
+	return out
+}
+
+func tomlString(s string) string {
+	return strings.Trim(strings.TrimSpace(s), `"'`)
+}
+
+// --- pnpm-lock.yaml (npm) — claves de packages (v5/v6/v7/v8) ---
+
+var pnpmKeyRe = regexp.MustCompile(`^\s+/?(@?[^\s:]+):`)
+
+func parsePnpmLock(body string) map[string]string {
+	out := map[string]string{}
+	sc := bufio.NewScanner(strings.NewReader(body))
+	sc.Buffer(make([]byte, 1024*1024), 8*1024*1024)
+	for sc.Scan() {
+		m := pnpmKeyRe.FindStringSubmatch(sc.Text())
+		if m == nil {
+			continue
+		}
+		key := m[1]
+		if i := strings.IndexByte(key, '('); i > 0 { // sufijo de peers: pkg@1.2.3(react@18)
+			key = key[:i]
+		}
+		name, ver := pnpmSplit(key)
+		if name != "" && ver != "" && ver[0] >= '0' && ver[0] <= '9' {
+			addLockDep(out, name, ver)
+		}
+	}
+	return out
+}
+
+// pnpmSplit separa "nombre@version" (v6+) o "nombre/version" (v5), respetando
+// paquetes scoped (@scope/pkg).
+func pnpmSplit(key string) (name, version string) {
+	if at := strings.LastIndex(key, "@"); at > 0 { // v6+: pkg@1.2.3 / @scope/pkg@1.2.3
+		return key[:at], key[at+1:]
+	}
+	if sl := strings.LastIndex(key, "/"); sl > 0 { // v5: pkg/1.2.3 / @scope/pkg/1.2.3
+		return key[:sl], key[sl+1:]
+	}
+	return "", ""
+}
+
 // --- go.mod (Go) — require de una línea y en bloque ---
 
 var goRequireLineRe = regexp.MustCompile(`^(?:require\s+)?([^\s]+/[^\s]+)\s+v([0-9][^\s]*)`)

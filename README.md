@@ -268,9 +268,10 @@ ecosistemas soportados:
 | Archivo | Ecosistema (OSV) |
 |---|---|
 | `composer.lock` | Packagist |
-| `package-lock.json` (v1/v2/v3), `yarn.lock` (v1 y berry) | npm |
-| `requirements.txt` (fijado con `==`), `Pipfile.lock` | PyPI |
-| `go.mod` | Go |
+| `package-lock.json` (v1/v2/v3), `yarn.lock` (v1 y berry), `pnpm-lock.yaml` (v5/v6+) | npm |
+| `requirements.txt` (fijado con `==`), `Pipfile.lock`, `poetry.lock` | PyPI |
+| `go.mod`, `go.sum` | Go |
+| `Gemfile.lock` | RubyGems |
 
 Si hay lockfile de un ecosistema, se prefiere sobre su manifiesto para el cruce
 de versión (el manifiesto se sigue usando para detectar constraints sueltas).
@@ -565,7 +566,7 @@ Cada límite de arriba tiene un camino de mejora concreto, ordenado por impacto:
 |---|---|---|
 | Fingerprint acotado (~18 productos) | Motor de fingerprint por reglas (YAML) en vez de regex embebidas, para sumar productos sin recompilar; mapear a CPE. | Medio |
 | CVE db curada chica + NVD por keyword | Precisión con CPE exacto; sync incremental de NVD; sumar la base de OSV también para servicios (no solo paquetes). | Medio |
-| Versión aproximada sin lockfile | Ya resuelto con lockfiles; extender a `poetry.lock`, `Gemfile.lock`, `go.sum`, `pnpm-lock.yaml`. | Bajo |
+| Versión aproximada sin lockfile | Resuelto con lockfiles (npm/yarn/pnpm, Packagist, PyPI/pip/pipenv/poetry, Go mod+sum, RubyGems). Pendiente: `Cargo.lock`, `Gemfile` sin lock. | Bajo |
 | Red = TCP connect | Detección de versión de servicio más profunda (probes por puerto), y opción UDP para servicios clave (DNS, SNMP, NetBIOS). | Medio |
 | Web sin crawling ni fuzzing | Spider ligero para descubrir rutas antes de aplicar reglas; fuzzing pasivo de parámetros de bajo riesgo. | Alto |
 | Container solo estático | Inspección de imagen construida y sus capas (SCA de paquetes del SO). | Alto |

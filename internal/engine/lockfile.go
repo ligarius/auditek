@@ -129,6 +129,14 @@ func AnalyzeLockfile(body, target, source, ecosystem string, useOSV bool) []Find
 		deps = parseRequirementsTxt(body)
 	case strings.HasSuffix(source, "go.mod"):
 		deps = parseGoMod(body)
+	case strings.HasSuffix(source, "go.sum"):
+		deps = parseGoSum(body)
+	case strings.HasSuffix(source, "Gemfile.lock"):
+		deps = parseGemfileLock(body)
+	case strings.HasSuffix(source, "poetry.lock"):
+		deps = parsePoetryLock(body)
+	case strings.HasSuffix(source, "pnpm-lock.yaml"):
+		deps = parsePnpmLock(body)
 	}
 	return crossReferenceVersions(deps, target, source, ecosystem, useOSV, true)
 }
