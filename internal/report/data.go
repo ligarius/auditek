@@ -1,8 +1,10 @@
 package report
 
 import (
+	"sort"
 	"time"
 
+	"auditek/internal/classify"
 	"auditek/internal/correlate"
 	"auditek/internal/findings"
 )
@@ -18,8 +20,16 @@ type FindingView struct {
 	Target        string
 	Severity      string
 	SeverityLabel string
+	Domain        string
 	Impact        string
 	Evidence      string
+}
+
+// PhaseGroup agrupa hallazgos por fase de la kill-chain para el reporte HTML.
+type PhaseGroup struct {
+	Phase    string
+	Count    int
+	Findings []FindingView
 }
 
 type ReportData struct {
@@ -29,13 +39,15 @@ type ReportData struct {
 	ScanID            string
 	BrandContact      string
 	SummaryBoxes      []SummaryBox
-	Findings          []FindingView
+	PhaseGroups       []PhaseGroup
 	// Postura de riesgo agregada (0–100 + nivel), para priorizar de un vistazo.
 	RiskValue    int
 	RiskLevel    string
 	RiskSeverity string // severidad cuyo color reutiliza el banner
 	RiskChains   int
 }
+
+var severityRank = map[string]int{"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 
 var severityLabels = map[string]string{
 	"critical": "CRÍTICO", "high": "ALTO", "medium": "MEDIO", "low": "BAJO", "info": "INFO",
@@ -48,15 +60,17 @@ var riskLevelSeverity = map[string]string{
 
 func BuildReportData(scanID, target string, fs []findings.Finding, brandContact string) ReportData {
 	counts := map[string]int{"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
-	var views []FindingView
+	byPhase := map[string][]FindingView{}
 
 	for _, f := range fs {
 		counts[f.Severity]++
-		views = append(views, FindingView{
+		domain, phase := classify.Classify(f.RuleID)
+		byPhase[phase] = append(byPhase[phase], FindingView{
 			RuleName:      f.RuleName,
 			Target:        f.Target,
 			Severity:      f.Severity,
 			SeverityLabel: severityLabels[f.Severity],
+			Domain:        domain,
 			Impact:        f.Impact,
 			Evidence:      f.Evidence,
 		})
@@ -69,6 +83,19 @@ func BuildReportData(scanID, target string, fs []findings.Finding, brandContact 
 		}
 	}
 
+	// Agrupa por fase (orden de impacto), severidad descendente dentro de cada una.
+	var groups []PhaseGroup
+	for _, phase := range classify.PhaseOrder {
+		items := byPhase[phase]
+		if len(items) == 0 {
+			continue
+		}
+		sort.SliceStable(items, func(i, j int) bool {
+			return severityRank[items[i].Severity] < severityRank[items[j].Severity]
+		})
+		groups = append(groups, PhaseGroup{Phase: phase, Count: len(items), Findings: items})
+	}
+
 	sc := correlate.RiskScore(fs)
 
 	return ReportData{
@@ -78,7 +105,7 @@ func BuildReportData(scanID, target string, fs []findings.Finding, brandContact 
 		ScanID:            scanID,
 		BrandContact:      brandContact,
 		SummaryBoxes:      boxes,
-		Findings:          views,
+		PhaseGroups:       groups,
 		RiskValue:         sc.Value,
 		RiskLevel:         sc.Level,
 		RiskSeverity:      riskLevelSeverity[sc.Level],

@@ -130,33 +130,74 @@ Descarga CVEs reales desde la API de NVD y los cachea en
 NVD limita a ~5 requests/30s sin API key — el comando ya espera entre
 productos para respetar ese límite.
 
-## Qué detecta
+## Qué detecta (por dominio)
 
-**21 reglas HTTP** (`rules/exposure/`, `rules/compliance/`, `rules/thirdparty/`):
-exposición de secretos (`.env`, backups, claves SSH, `.git/config`, CI/CD),
-misconfiguraciones (directory listing, admin panels, phpinfo), cumplimiento
-(headers de seguridad, cookies, CSP, HTTPS, ausencia de protección
-anti-fuerza-bruta en login), y hallazgos de terceros (subdomain takeover,
-errores verbosos).
+Los hallazgos se organizan por **dominio técnico** (qué área cubren) y se
+etiquetan además con una **fase** de la kill-chain (ver "Categorización").
 
-**5 reglas TCP de protocolo real** (no HTTP): Redis sin auth, Memcached
-expuesto, FTP con login anónimo, SMTP con VRFY habilitado, POP3 sin
-STARTTLS. El motor soporta protocolos de un solo intercambio y con
-handshake multi-paso (`steps:` en el YAML).
+### Red
 
-**CVEs reales**: fingerprinting de versión vía headers HTTP (`Server`,
-`X-Powered-By`), meta-generator del body y banners TCP, cruzado contra un set
-curado de 9 CVEs bien documentados + lo que traiga `update-db` (NVD) + OSV
-(`--osv`, dependencias). Cada hallazgo incluye un campo **Riesgo** explicando
-qué tipo de ataque habilita, no solo qué es.
+- **Puertos y servicios**: port scan + banners; identificación de servicio.
+- **5 reglas TCP de protocolo real**: Redis sin auth, Memcached expuesto, FTP
+  anónimo, SMTP con VRFY, POP3 sin STARTTLS (un intercambio o handshake
+  multi-paso con `steps:`).
+- **Superficie de movimiento lateral** en redes internas (RDP/WinRM/SMB/SSH).
 
-**Tecnologías detectadas**: el fingerprint reconoce ~18 componentes con versión
-(apache, nginx, iis, openresty, lighttpd, litespeed, tomcat, jetty, gunicorn,
-werkzeug, php, wordpress, drupal, jquery, bootstrap, openssh, vsftpd, proftpd,
-exim). Cada versión detectada se reporta como hallazgo `technology-detected`
-(severidad info) aunque no tenga un CVE conocido — exponer la versión exacta ya
-es superficie de reconocimiento. Si además cae en un rango vulnerable, se suma
-el CVE correspondiente.
+### Active Directory
+
+Reconocimiento sin credenciales: Domain Controller (perfil de puertos), LDAP sin
+LDAPS, Kerberos/KDC, Global Catalog en claro, y firma SMB no requerida (NTLM
+relay). Ver la sección dedicada.
+
+### Web
+
+- **21 reglas HTTP** (`rules/exposure/`, `rules/compliance/`, `rules/thirdparty/`):
+  exposición de secretos (`.env`, backups, claves SSH, `.git/config`, CI/CD),
+  misconfiguraciones (directory listing, admin panels, phpinfo), cumplimiento
+  (headers, cookies, CSP, HTTPS, anti-fuerza-bruta), y terceros (subdomain
+  takeover, errores verbosos).
+- **Chequeos de certificado TLS** y **SRI/supply-chain** (ver secciones).
+
+### Dependencias (SCA)
+
+Manifiestos y **lockfiles** (npm, Packagist, PyPI, Go) cruzados contra la CVE db
+local y **OSV** (`--osv`). Ver "Riesgo de supply chain".
+
+### Subdominios
+
+Resolución DNS sobre wordlist + **Certificate Transparency** (`--ct`).
+
+### Contenedor
+
+Análisis estático de Dockerfile (malas prácticas y secretos).
+
+### CVEs y tecnologías (transversal)
+
+- **CVEs reales**: fingerprinting de versión (headers, meta-generator, banners)
+  cruzado contra el set curado (9) + `update-db` (NVD) + OSV. Cada hallazgo lleva
+  un campo **Riesgo** con qué habilita, no solo qué es.
+- **Tecnologías detectadas**: ~18 componentes con versión (apache, nginx, iis,
+  openresty, lighttpd, litespeed, tomcat, jetty, gunicorn, werkzeug, php,
+  wordpress, drupal, jquery, bootstrap, openssh, vsftpd, proftpd, exim). Se
+  reportan como `technology-detected` (info) aunque no haya CVE.
+
+## Categorización (dominio + fase)
+
+Cada hallazgo se clasifica automáticamente (por su `RuleID`, en
+`internal/classify`) en dos ejes, sin cambiar la base de datos:
+
+- **Dominio técnico**: Red · Web · Active Directory · Dependencias · Subdominios
+  · Contenedor · General.
+- **Fase de la kill-chain**: Reconocimiento · Acceso inicial · Movimiento lateral
+  · Escalada / Correlación.
+
+Dónde se ve cada eje:
+
+- **Consola** (`scan` y `report`): agrupa por **severidad** y muestra el dominio
+  como etiqueta `[Red]`, `[Active Directory]`, etc.
+- **Reporte HTML**: agrupa por **fase** (secciones), con la severidad y el
+  dominio en cada hallazgo.
+- **JSON** (`report --format json`): cada hallazgo incluye `domain` y `phase`.
 
 ## Escribir tus propias reglas
 
@@ -545,6 +586,7 @@ internal/
   subdomain/    enumeración de subdominios por DNS
   container/    análisis estático de Dockerfile
   correlate/    correlación de hallazgos ("hasta dónde podría llegar")
+  classify/     dominio técnico + fase (kill-chain) por hallazgo
   scope/        validación de scope.yaml para modo stealth
   auth/         JWT para modo stealth
   findings/     persistencia SQLite

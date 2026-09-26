@@ -44,6 +44,8 @@ const htmlTemplate = `
   .finding.info { border-color: #9ca3af; }
   .finding h3 { margin: 0 0 6px 0; font-size: 15px; }
   .finding .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; margin-right: 8px; }
+  .finding .domain-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: #e5e7eb; color: #374151; margin-right: 8px; }
+  .section-title .phase-count { color: #9ca3af; font-size: 15px; font-weight: normal; }
   .finding .target { color: #444; font-size: 13px; font-family: monospace; }
   .finding .impact { color: #333; font-size: 13px; margin-top: 8px; padding: 8px 10px; background: #fff7ed; border-left: 3px solid #ea580c; border-radius: 0 4px 4px 0; }
   .finding .impact strong { color: #9a3412; }
@@ -100,15 +102,18 @@ const htmlTemplate = `
   </table>
   {{end}}
 
-  <h2 class="section-title">Hallazgos de Seguridad (Vulnerabilities & Misconfigurations)</h2>
+  {{range .PhaseGroups}}
+  <h2 class="section-title">{{.Phase}} <span class="phase-count">({{.Count}})</span></h2>
   {{range .Findings}}
   <div class="finding {{.Severity}}">
     <span class="badge {{.Severity}}">{{.SeverityLabel}}</span>
+    <span class="domain-tag">{{.Domain}}</span>
     <h3>{{.RuleName}}</h3>
     <div class="target">{{.Target}}</div>
     {{if .Impact}}<div class="impact"><strong>Riesgo:</strong> {{.Impact}}</div>{{end}}
     {{if .Evidence}}<div class="evidence">{{.Evidence}}</div>{{end}}
   </div>
+  {{end}}
   {{end}}
 
   <div class="footer">
