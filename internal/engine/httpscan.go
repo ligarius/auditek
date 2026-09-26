@@ -92,7 +92,25 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 					})
 				}
 
+				seenTech := map[string]bool{}
 				for _, fp := range ExtractFingerprints(resp) {
+					// Hallazgo informativo: tecnología+versión detectada, aunque
+					// no haya CVE conocido para ella. Severidad info (no suma al
+					// score de riesgo), pero enriquece el reconocimiento.
+					techKey := fp.Product + " " + fp.Version
+					if !seenTech[techKey] {
+						seenTech[techKey] = true
+						findings = append(findings, Finding{
+							RuleID:    "technology-detected",
+							RuleName:  fmt.Sprintf("Tecnología detectada: %s %s", fp.Product, fp.Version),
+							Target:    baseURL,
+							Severity:  "info",
+							Impact:    "Exponer la versión exacta de un componente le facilita a un atacante buscar exploits conocidos para esa versión. Ocultar el banner de versión y mantener el componente actualizado reduce esa superficie.",
+							Timestamp: time.Now(),
+							Evidence:  fmt.Sprintf("%s %s", fp.Product, fp.Version),
+						})
+					}
+
 					for _, cve := range cvedb.Lookup(fp.Product, fp.Version) {
 						findings = append(findings, Finding{
 							RuleID:    cve.CVE,

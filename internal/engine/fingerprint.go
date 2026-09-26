@@ -13,14 +13,32 @@ var fingerprintPatterns = []struct {
 	re      *regexp.Regexp
 	source  string // "header:Server", "header:X-Powered-By", "body", "banner"
 }{
+	// Servidores web / app (header Server, a veces en body/páginas de error)
 	{"apache", regexp.MustCompile(`Apache/(\d+\.\d+\.\d+)`), "header:Server"},
 	{"nginx", regexp.MustCompile(`nginx/(\d+\.\d+\.\d+)`), "header:Server"},
 	{"iis", regexp.MustCompile(`Microsoft-IIS/(\d+\.\d+)`), "header:Server"},
+	{"openresty", regexp.MustCompile(`openresty/(\d+\.\d+\.\d+)`), "header:Server"},
+	{"lighttpd", regexp.MustCompile(`lighttpd/(\d+\.\d+\.\d+)`), "header:Server"},
+	{"litespeed", regexp.MustCompile(`LiteSpeed/(\d+\.\d+(?:\.\d+)?)`), "header:Server"},
+	{"tomcat", regexp.MustCompile(`(?:Apache Tomcat|Tomcat)/(\d+\.\d+\.\d+)`), "body"},
+	{"jetty", regexp.MustCompile(`Jetty\((\d+\.\d+\.\d+)`), "header:Server"},
+	{"gunicorn", regexp.MustCompile(`gunicorn/(\d+\.\d+\.\d+)`), "header:Server"},
+	{"werkzeug", regexp.MustCompile(`Werkzeug/(\d+\.\d+\.\d+)`), "header:Server"},
+
+	// Lenguajes / runtimes
+	{"php", regexp.MustCompile(`PHP/(\d+\.\d+\.\d+)`), "header:X-Powered-By"},
+
+	// CMS / frameworks / librerías (body: meta generator o el <script>)
+	{"wordpress", regexp.MustCompile(`(?i)content="WordPress (\d+\.\d+(?:\.\d+)?)"`), "body"},
+	{"drupal", regexp.MustCompile(`(?i)content="Drupal (\d+)`), "body"},
+	{"jquery", regexp.MustCompile(`jquery[/-](\d+\.\d+\.\d+)`), "body"},
+	{"bootstrap", regexp.MustCompile(`bootstrap[/-](\d+\.\d+\.\d+)`), "body"},
+
+	// Servicios por banner TCP
 	{"openssh", regexp.MustCompile(`OpenSSH[_/](\d+\.\d+)`), "banner"},
 	{"vsftpd", regexp.MustCompile(`(?i)vsftpd (\d+\.\d+\.\d+)`), "banner"},
+	{"proftpd", regexp.MustCompile(`(?i)ProFTPD (\d+\.\d+\.\d+)`), "banner"},
 	{"exim", regexp.MustCompile(`Exim (\d+\.\d+)`), "banner"},
-	{"php", regexp.MustCompile(`PHP/(\d+\.\d+\.\d+)`), "header:X-Powered-By"},
-	{"jquery", regexp.MustCompile(`jquery[/-](\d+\.\d+\.\d+)`), "body"},
 }
 
 // ExtractFingerprints busca patrones de producto+versión conocidos en headers y body.
