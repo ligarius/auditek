@@ -351,11 +351,24 @@ ejecuta la cadena, nunca prueba si Redis realmente permite escribir una
 clave SSH, nunca intenta el pivote. Solo explica qué *podría* pasar si
 alguien encadenara esos hallazgos.
 
-Patrones actuales: Redis sin auth + superficie de movimiento lateral
+Patrones actuales incluyen: Redis sin auth + superficie de movimiento lateral
 (persistencia → pivote), secretos expuestos + panel admin (credenciales →
 acceso administrativo), CVE crítico + superficie de movimiento lateral
-(compromiso inicial → propagación). Ver `internal/correlate/correlate.go`
-para agregar más patrones.
+(compromiso inicial → propagación), clave SSH privada expuesta + superficie
+lateral, datastore sin auth (Memcached/Elasticsearch) + superficie lateral,
+`.git` expuesto (disclosure de código fuente), CI/CD expuesto (riesgo de supply
+chain), posible subdomain takeover, y superficie de API mapeada (docs +
+introspección GraphQL). Ver `internal/correlate/correlate.go` para agregar más.
+
+### Postura de riesgo agregada
+
+Además de la lista de hallazgos, Auditek calcula una **postura de riesgo** del
+objetivo (0–100 + nivel Ninguno/Bajo/Medio/Alto/Crítico), ponderando por
+severidad y sumando un extra por cada cadena de ataque correlacionada — los
+hallazgos `info` (puertos abiertos, subdominios) no inflan el número. Aparece al
+final de `scan` y de `auditek report`, para priorizar de un vistazo en vez de
+leer una lista plana. Es una heurística de priorización para el reporte, **no un
+CVSS**.
 
 **Limitación**: la correlación solo cruza hallazgos dentro del mismo
 scan — no correlaciona un `scan web` con un `scan network` hechos por

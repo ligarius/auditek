@@ -109,6 +109,75 @@ var pathRules = []PathRule{
 		Narrative: "Se encontraron archivos/secretos expuestos (%s) y la validación externa confirmó impacto (%s). " +
 			"No es solo exposición teórica: hay evidencia de que el material es accionable.",
 	},
+	{
+		ID:   "path-ssh-key-to-lateral",
+		Name: "Escalada posible: clave SSH privada expuesta -> acceso directo -> pivote",
+		RequireAnyGroups: [][]string{
+			{"exposed-ssh-key"},
+			{"lateral-movement-surface"},
+		},
+		Severity: "critical",
+		Narrative: "Se encontró una clave SSH privada expuesta (%s) Y además superficie de gestión remota " +
+			"en la misma red (%s). Una clave privada filtrada puede dar acceso autenticado directo — sin " +
+			"adivinar contraseñas — y desde ahí saltar a otros hosts que confíen en esa clave.",
+	},
+	{
+		ID:   "path-datastore-exposed-internal",
+		Name: "Escalada posible: datastore sin auth + superficie de movimiento lateral",
+		RequireAnyGroups: [][]string{
+			{"memcached-exposed", "exposed-elasticsearch"},
+			{"lateral-movement-surface"},
+		},
+		Severity: "high",
+		Narrative: "Un almacén de datos accesible sin autenticación (%s) coexiste con superficie de gestión " +
+			"remota en la misma red (%s). Un atacante podría leer/alterar datos sensibles y usar ese punto " +
+			"de apoyo para moverse lateralmente hacia otros sistemas internos.",
+	},
+	{
+		ID:   "path-git-source-disclosure",
+		Name: "Exposición de código fuente vía .git",
+		RequireAnyGroups: [][]string{
+			{"exposed-git-config"},
+		},
+		Severity: "high",
+		Narrative: "El directorio .git está accesible públicamente (%s). Permite reconstruir el código fuente " +
+			"completo del sitio y revisar su historial en busca de credenciales, claves y lógica interna — " +
+			"un punto de partida frecuente para ataques dirigidos.",
+	},
+	{
+		ID:   "path-cicd-supplychain",
+		Name: "Exposición de pipeline CI/CD (riesgo de supply chain)",
+		RequireAnyGroups: [][]string{
+			{"exposed-cicd-config"},
+		},
+		Severity: "high",
+		Narrative: "Hay configuración de CI/CD expuesta (%s). Revela la topología del pipeline de despliegue " +
+			"y, a veces, secretos mal manejados — información que facilita comprometer el proceso de build " +
+			"y, con ello, la cadena de suministro del software.",
+	},
+	{
+		ID:   "path-subdomain-takeover",
+		Name: "Posible toma de control de subdominio (subdomain takeover)",
+		RequireAnyGroups: [][]string{
+			{"subdomain-takeover-hint"},
+		},
+		Severity: "high",
+		Narrative: "Un subdominio apunta a un servicio de terceros que parece no reclamado (%s). Si un atacante " +
+			"reclama ese recurso, puede servir contenido bajo tu dominio — phishing con tu marca, robo de " +
+			"cookies de sesión, o bypass de controles que confían en el subdominio.",
+	},
+	{
+		ID:   "path-api-surface-mapped",
+		Name: "Superficie de API expuesta y documentada",
+		RequireAnyGroups: [][]string{
+			{"exposed-api-docs"},
+			{"exposed-graphql-introspection"},
+		},
+		Severity: "medium",
+		Narrative: "La documentación de la API está accesible (%s) junto con introspección GraphQL habilitada (%s). " +
+			"Juntas entregan a un atacante el mapa completo de endpoints, tipos y operaciones — reduce el trabajo " +
+			"de reconocimiento y facilita encontrar operaciones sensibles mal protegidas.",
+	},
 }
 
 // Correlate revisa el set de hallazgos de UN escaneo y agrega hallazgos de
@@ -180,4 +249,65 @@ func Correlate(scanID string, fs []findings.Finding) []findings.Finding {
 	}
 
 	return extra
+}
+
+// Score resume la postura de riesgo agregada de un objetivo en un solo número
+// 0–100 y un nivel legible, para priorizar en vez de leer una lista plana.
+type Score struct {
+	Value      int            // 0–100 (saturado)
+	Level      string         // Crítico | Alto | Medio | Bajo | Ninguno
+	BySeverity map[string]int // conteo por severidad (incluye info)
+	Chains     int            // nº de caminos de ataque correlacionados (path-*)
+}
+
+// severityWeight pondera cada severidad al calcular el score. `info`
+// (puertos abiertos, subdominios, etc.) no suma: es contexto, no riesgo.
+var severityWeight = map[string]int{
+	"critical": 40,
+	"high":     20,
+	"medium":   8,
+	"low":      3,
+	"info":     0,
+}
+
+// chainBoost es cuánto suma cada camino de ataque correlacionado, por encima de
+// los hallazgos que lo componen: una cadena vale más que sus partes sueltas.
+const chainBoost = 15
+
+// RiskScore calcula la postura de riesgo agregada a partir de todos los
+// hallazgos de un scan (incluidos los path-* de correlación, que ya deben estar
+// presentes en fs). El valor se satura en 100. Es una heurística de priorización
+// para el reporte, no un CVSS.
+func RiskScore(fs []findings.Finding) Score {
+	bySev := map[string]int{}
+	sum := 0
+	chains := 0
+	for _, f := range fs {
+		bySev[f.Severity]++
+		if strings.HasPrefix(f.RuleID, "path-") {
+			chains++
+			sum += chainBoost
+			continue
+		}
+		sum += severityWeight[f.Severity]
+	}
+	if sum > 100 {
+		sum = 100
+	}
+	return Score{Value: sum, Level: riskLevel(sum), BySeverity: bySev, Chains: chains}
+}
+
+func riskLevel(v int) string {
+	switch {
+	case v >= 75:
+		return "Crítico"
+	case v >= 50:
+		return "Alto"
+	case v >= 25:
+		return "Medio"
+	case v > 0:
+		return "Bajo"
+	default:
+		return "Ninguno"
+	}
 }

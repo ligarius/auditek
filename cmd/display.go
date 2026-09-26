@@ -6,10 +6,32 @@ import (
 	"os"
 	"strings"
 
+	"auditek/internal/correlate"
 	"auditek/internal/findings"
 	"auditek/internal/report"
 	"auditek/internal/ui"
 )
+
+// riskLevelSeverity mapea el nivel de la postura de riesgo a la severidad cuyo
+// color reutiliza, para pintar el score con la misma paleta que los hallazgos.
+var riskLevelSeverity = map[string]string{
+	"Crítico": "critical",
+	"Alto":    "high",
+	"Medio":   "medium",
+	"Bajo":    "low",
+	"Ninguno": "info",
+}
+
+// printRiskPosture imprime la postura de riesgo agregada del objetivo.
+func printRiskPosture(sc correlate.Score) {
+	sev := riskLevelSeverity[sc.Level]
+	label := ui.ColorBySeverity(sev, fmt.Sprintf("%s (%d/100)", sc.Level, sc.Value))
+	line := "  " + ui.Bold("Riesgo") + "    " + label
+	if sc.Chains > 0 {
+		line += ui.Gray(fmt.Sprintf("  · %d cadena(s) de ataque correlacionada(s)", sc.Chains))
+	}
+	fmt.Println(line)
+}
 
 // severityDisplayOrder es el orden de impresión de hallazgos, de más a menos grave.
 var severityDisplayOrder = []string{"critical", "high", "medium", "low", "info"}
@@ -63,6 +85,7 @@ func displayFindings(fs []findings.Finding) {
 	}
 	fmt.Printf("  %s   %s\n", ui.Bold("Resumen"), strings.Join(seg, ui.Gray(" · ")))
 	fmt.Printf("  %s     %s\n", ui.Bold("Total"), fmt.Sprintf("%d hallazgos", len(fs)))
+	printRiskPosture(correlate.RiskScore(fs))
 }
 
 // promptExportHTML pregunta si exportar a HTML
