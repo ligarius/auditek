@@ -3,6 +3,7 @@ package report
 import (
 	"time"
 
+	"auditek/internal/correlate"
 	"auditek/internal/findings"
 )
 
@@ -23,16 +24,26 @@ type FindingView struct {
 
 type ReportData struct {
 	HasReconnaissance bool
-	Target       string
-	Date         string
-	ScanID       string
-	BrandContact string
-	SummaryBoxes []SummaryBox
-	Findings     []FindingView
+	Target            string
+	Date              string
+	ScanID            string
+	BrandContact      string
+	SummaryBoxes      []SummaryBox
+	Findings          []FindingView
+	// Postura de riesgo agregada (0–100 + nivel), para priorizar de un vistazo.
+	RiskValue    int
+	RiskLevel    string
+	RiskSeverity string // severidad cuyo color reutiliza el banner
+	RiskChains   int
 }
 
 var severityLabels = map[string]string{
 	"critical": "CRÍTICO", "high": "ALTO", "medium": "MEDIO", "low": "BAJO", "info": "INFO",
+}
+
+// riskLevelSeverity mapea el nivel de riesgo a la severidad cuyo color reutiliza.
+var riskLevelSeverity = map[string]string{
+	"Crítico": "critical", "Alto": "high", "Medio": "medium", "Bajo": "low", "Ninguno": "info",
 }
 
 func BuildReportData(scanID, target string, fs []findings.Finding, brandContact string) ReportData {
@@ -58,14 +69,20 @@ func BuildReportData(scanID, target string, fs []findings.Finding, brandContact 
 		}
 	}
 
+	sc := correlate.RiskScore(fs)
+
 	return ReportData{
 		HasReconnaissance: false,
-		Target:       target,
-		Date:         time.Now().Format("02-01-2006 15:04"),
-		ScanID:       scanID,
-		BrandContact: brandContact,
-		SummaryBoxes: boxes,
-		Findings:     views,
+		Target:            target,
+		Date:              time.Now().Format("02-01-2006 15:04"),
+		ScanID:            scanID,
+		BrandContact:      brandContact,
+		SummaryBoxes:      boxes,
+		Findings:          views,
+		RiskValue:         sc.Value,
+		RiskLevel:         sc.Level,
+		RiskSeverity:      riskLevelSeverity[sc.Level],
+		RiskChains:        sc.Chains,
 	}
 }
 

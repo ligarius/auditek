@@ -23,6 +23,12 @@ const htmlTemplate = `
   .low { background: #4b5563; }
   .info { background: #6b7280; }
   .summary-box .count { font-size: 28px; font-weight: bold; display: block; }
+  .risk { display: flex; align-items: center; gap: 22px; padding: 20px 26px; border-radius: 8px; margin-bottom: 26px; color: #fff; }
+  .risk .score { font-size: 44px; font-weight: bold; line-height: 1; }
+  .risk .score span { font-size: 18px; opacity: 0.85; }
+  .risk .level { font-size: 19px; font-weight: bold; }
+  .risk .chains { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+  .risk .note { font-size: 11px; opacity: 0.8; margin-top: 6px; }
   .section-title { margin-top: 40px; margin-bottom: 20px; color: #0f3460; font-size: 20px; border-bottom: 2px solid #0f3460; padding-bottom: 10px; }
   .recon-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
   .recon-table th { background: #f0f0f0; padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: bold; }
@@ -51,6 +57,15 @@ const htmlTemplate = `
     <h1>Reporte de Auditoría de Seguridad</h1>
     <div class="meta">
       Target: {{.Target}} &nbsp;|&nbsp; Fecha: {{.Date}} &nbsp;|&nbsp; Scan ID: {{.ScanID}}
+    </div>
+  </div>
+
+  <div class="risk {{.RiskSeverity}}">
+    <div class="score">{{.RiskValue}}<span>/100</span></div>
+    <div>
+      <div class="level">Postura de riesgo: {{.RiskLevel}}</div>
+      {{if .RiskChains}}<div class="chains">{{.RiskChains}} cadena(s) de ataque correlacionada(s)</div>{{end}}
+      <div class="note">Heurística de priorización agregada (ponderada por severidad + cadenas) — no es un CVSS.</div>
     </div>
   </div>
 
