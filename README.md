@@ -72,6 +72,7 @@ Cuatro tipos de escaneo:
 | `--depth <d>` | `normal` | subdomains | `fast` \| `normal` \| `deep` |
 | `--focus <cats>` | — | subdomains | categorías separadas por coma (ignora `--depth`) |
 | `--wordlist <f>` | — | subdomains | wordlist externa (ignora `--depth`/`--focus`) |
+| `--ct` | off | subdomains | además consulta Certificate Transparency (crt.sh) y fusiona con la wordlist |
 | `--exclude-rule <ids>` | — | network/web | IDs de reglas a omitir, separados por coma |
 | `--rules <dir>` | `rules` | network/web | directorio de reglas a cargar en vez del embebido |
 | `--exec-hook <f>` | — | network/web | binario externo tuyo cuya salida JSON se integra al reporte (ver más abajo) |
@@ -222,11 +223,12 @@ auditek scan subdomains tucliente.cl --depth fast               # rápido, solo 
 auditek scan subdomains tucliente.cl --depth deep                # más categorías, más lento
 auditek scan subdomains tucliente.cl --focus admin,dev           # solo estas categorías, ignora --depth
 auditek scan subdomains tucliente.cl --wordlist seclist.txt      # archivo externo, ignora --depth y --focus
+auditek scan subdomains tucliente.cl --ct                        # + Certificate Transparency (crt.sh)
 ```
 
-Resolución DNS pura (`net.LookupHost`) — no se conecta a nada. La wordlist
-embebida está organizada por categoría, para acotar el escaneo a lo que
-realmente interesa en vez de tirar siempre todo:
+Por defecto la resolución es DNS pura (`net.LookupHost`) sobre la wordlist —
+no se conecta al objetivo. La wordlist embebida está organizada por categoría,
+para acotar el escaneo a lo que realmente interesa en vez de tirar siempre todo:
 
 | Categoría | Ejemplos | fast | normal | deep |
 |---|---|---|---|---|
@@ -247,9 +249,23 @@ Si un subdominio resuelve a una **IP privada** (192.168.x, 10.x), Auditek
 lo marca explícitamente — puede ser una filtración de topología de red
 interna vía DNS público mal configurado.
 
-**Limitación**: incluso en `deep`, sigue siendo una wordlist curada
-(~75 entradas) — no reemplaza fuentes reales de descubrimiento masivo
-como Certificate Transparency logs.
+### Certificate Transparency (`--ct`)
+
+Con `--ct`, además de la wordlist Auditek consulta los logs de **Certificate
+Transparency** vía [crt.sh](https://crt.sh): todo certificado TLS emitido para
+el dominio queda en registros públicos, así que revela subdominios **reales**
+que ninguna wordlist adivinaría (`checkout-legacy`, `grafana-old`, nombres de
+cliente, etc.). Los nombres de CT se fusionan con la wordlist y se **confirman
+por DNS** igual que el resto, y cada hallazgo indica su fuente en la evidencia
+(`wordlist DNS` vs `Certificate Transparency + DNS`).
+
+Es reconocimiento pasivo sobre datos públicos —no toca la infraestructura del
+objetivo— pero **sí contacta un tercero (crt.sh)**, por eso es opt-in. Un
+nombre histórico que ya no resuelve simplemente no aparece en los resultados.
+
+**Limitación**: sin `--ct`, la wordlist embebida (~75 entradas) es acotada;
+crt.sh depende de que el objetivo use certificados en CT (hoy casi universal en
+TLS público, pero no cubre certs internos que nunca se emitieron públicamente).
 
 ## Integrar resultados de otras herramientas (`auditek import`)
 
