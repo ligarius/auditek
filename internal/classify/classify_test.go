@@ -8,27 +8,37 @@ func TestClassify(t *testing.T) {
 		domain string
 		phase  string
 	}{
-		{"ad-domain-controller", DomainAD, PhaseRecon},
-		{"ad-smb-signing-not-required", DomainAD, PhaseLateral},
-		{"ad-credentials-valid", DomainAD, PhaseLateral},
-		{"path-ad-ntlm-relay", DomainAD, PhaseEscalate},
-		{"path-rce-plus-lateral", DomainGeneral, PhaseEscalate},
-		{"lateral-movement-surface", DomainNetwork, PhaseLateral},
+		// Reconocimiento
 		{"open-port", DomainNetwork, PhaseRecon},
 		{"subdomain-discovered", DomainSubs, PhaseRecon},
-		{"subdomain-takeover-hint", DomainSubs, PhaseInitial},
 		{"technology-detected", DomainWeb, PhaseRecon},
-		{"CVE-2021-41773", DomainGeneral, PhaseInitial},
-		{"GHSA-abcd-1234", DomainDeps, PhaseInitial},
-		{"loose-dependency-version", DomainDeps, PhaseRecon},
-		{"dockerfile-runs-as-root", DomainContainer, PhaseRecon},
-		{"tls-cert-expired", DomainWeb, PhaseRecon},
-		{"exposed-env-file", DomainWeb, PhaseInitial},
-		{"exposed-ssh-key", DomainWeb, PhaseInitial},
-		{"redis-unauthenticated", DomainNetwork, PhaseInitial},
-		{"exposed-admin-panel", DomainWeb, PhaseInitial},
-		{"missing-security-headers", DomainWeb, PhaseRecon},
-		{"algo-desconocido", DomainGeneral, PhaseRecon},
+		{"ad-domain-controller", DomainAD, PhaseRecon},
+		// Enumeración
+		{"ad-smb-signing-not-required", DomainAD, PhaseEnum},
+		{"ad-kerberos-exposed", DomainAD, PhaseEnum},
+		{"lateral-movement-surface", DomainNetwork, PhaseEnum},
+		{"exposed-swagger", DomainWeb, PhaseEnum},
+		{"exposed-graphql-introspection", DomainWeb, PhaseEnum},
+		// Escaneo / Vulnerabilidades
+		{"CVE-2021-41773", DomainGeneral, PhaseVuln},
+		{"GHSA-abcd-1234", DomainDeps, PhaseVuln},
+		{"loose-dependency-version", DomainDeps, PhaseVuln},
+		{"dockerfile-runs-as-root", DomainContainer, PhaseVuln},
+		{"tls-cert-expired", DomainWeb, PhaseVuln},
+		{"exposed-env-file", DomainWeb, PhaseVuln},
+		{"redis-unauthenticated", DomainNetwork, PhaseVuln},
+		{"exposed-admin-panel", DomainWeb, PhaseVuln},
+		{"subdomain-takeover-hint", DomainSubs, PhaseVuln},
+		// Explotación (confirmada, típicamente vía --exec-hook/import)
+		{"ad-credentials-valid", DomainAD, PhaseExploit},
+		{"vsftpd-backdoor-confirmed", DomainNetwork, PhaseExploit},
+		{"secrets-validated", DomainWeb, PhaseExploit},
+		{"lateral-movement-confirmed", DomainAD, PhaseExploit},
+		// Post-explotación (correlación)
+		{"path-ad-ntlm-relay", DomainAD, PhasePost},
+		{"path-rce-plus-lateral", DomainGeneral, PhasePost},
+		// Default
+		{"algo-desconocido", DomainGeneral, PhaseVuln},
 	}
 	for _, c := range cases {
 		d, p := Classify(c.ruleID)

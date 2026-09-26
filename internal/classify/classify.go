@@ -1,22 +1,28 @@
 // Package classify asigna a cada hallazgo (por su RuleID) un dominio técnico y
-// una fase de la kill-chain, para poder agrupar y categorizar la salida sin
+// una fase del ciclo de pentest, para agrupar y categorizar la salida sin
 // cambiar el esquema de persistencia. Se deriva en tiempo de render, así también
-// aplica a scans antiguos ya guardados. Es una ayuda de organización, no una
-// clasificación exacta: ante la duda cae en General / Reconocimiento.
+// aplica a scans antiguos. Es una ayuda de organización, no exacta: ante la duda
+// cae en General / Escaneo.
+//
+// El ciclo completo es: Reconocimiento → Enumeración → Escaneo/Vulnerabilidades
+// → Explotación → Post-explotación → Reporte → Retest. Reporte y Retest son
+// actividades (comandos/flujo), no categorías de hallazgo, así que las fases de
+// hallazgo llegan hasta Post-explotación.
 package classify
 
 import "strings"
 
-// Fases de la kill-chain (simplificada).
+// Fases del ciclo de pentest que aplican a un hallazgo.
 const (
-	PhaseRecon    = "Reconocimiento"
-	PhaseInitial  = "Acceso inicial"
-	PhaseLateral  = "Movimiento lateral"
-	PhaseEscalate = "Escalada / Correlación"
+	PhaseRecon   = "Reconocimiento"
+	PhaseEnum    = "Enumeración"
+	PhaseVuln    = "Escaneo / Vulnerabilidades"
+	PhaseExploit = "Explotación"
+	PhasePost    = "Post-explotación"
 )
 
-// PhaseOrder es el orden de presentación (primero el impacto más alto).
-var PhaseOrder = []string{PhaseEscalate, PhaseLateral, PhaseInitial, PhaseRecon}
+// PhaseOrder es el orden de presentación (orden natural del ciclo).
+var PhaseOrder = []string{PhaseRecon, PhaseEnum, PhaseVuln, PhaseExploit, PhasePost}
 
 // Dominios técnicos.
 const (
@@ -29,65 +35,91 @@ const (
 	DomainGeneral   = "General"
 )
 
+// exploitConfirmed son RuleIDs que representan impacto CONFIRMADO, típicamente
+// aportados por módulos externos vía --exec-hook / import.
+var exploitConfirmed = map[string]bool{
+	"vsftpd-backdoor-confirmed":  true,
+	"redis-write-demonstrated":   true,
+	"secrets-validated":          true,
+	"lateral-movement-confirmed": true,
+	"ad-credentials-valid":       true,
+}
+
 // Classify devuelve (dominio, fase) para un RuleID.
 func Classify(ruleID string) (domain, phase string) {
 	id := strings.ToLower(ruleID)
 
 	switch {
-	case strings.HasPrefix(id, "path-"): // hallazgos de correlación
+	case strings.HasPrefix(id, "path-"): // correlación = potencial de post-explotación
 		if strings.Contains(id, "-ad-") || strings.Contains(id, "ntlm") {
-			return DomainAD, PhaseEscalate
+			return DomainAD, PhasePost
 		}
-		return DomainGeneral, PhaseEscalate
+		return DomainGeneral, PhasePost
+
+	case exploitConfirmed[id]:
+		return exploitDomain(id), PhaseExploit
 
 	case strings.HasPrefix(id, "ad-"):
-		if id == "ad-smb-signing-not-required" || id == "ad-credentials-valid" {
-			return DomainAD, PhaseLateral
+		if id == "ad-domain-controller" {
+			return DomainAD, PhaseRecon
 		}
-		return DomainAD, PhaseRecon
+		return DomainAD, PhaseEnum // ldap/kerberos/gc/firma-smb = enumeración de superficie
 
 	case id == "lateral-movement-surface":
-		return DomainNetwork, PhaseLateral
+		return DomainNetwork, PhaseEnum
 	case id == "open-port":
 		return DomainNetwork, PhaseRecon
 	case id == "subdomain-discovered":
 		return DomainSubs, PhaseRecon
-	case id == "subdomain-takeover-hint":
-		return DomainSubs, PhaseInitial
 	case id == "technology-detected":
 		return DomainWeb, PhaseRecon
-	case strings.HasPrefix(id, "dockerfile-"):
-		return DomainContainer, PhaseRecon
+
+	// Enumeración de superficie de aplicación.
+	case containsAny(id, "swagger", "api-docs", "graphql", "directory-listing"):
+		return DomainWeb, PhaseEnum
+
+	// Vulnerabilidades / SCA.
 	case strings.HasPrefix(id, "cve-"):
-		return DomainGeneral, PhaseInitial
+		return DomainGeneral, PhaseVuln
 	case strings.HasPrefix(id, "ghsa-"):
-		return DomainDeps, PhaseInitial
+		return DomainDeps, PhaseVuln
 	case id == "loose-dependency-version":
-		return DomainDeps, PhaseRecon
+		return DomainDeps, PhaseVuln
+	case strings.HasPrefix(id, "dockerfile-"):
+		return DomainContainer, PhaseVuln
 	case strings.HasPrefix(id, "tls-") || id == "weak-tls-version":
-		return DomainWeb, PhaseRecon
+		return DomainWeb, PhaseVuln
 	case id == "missing-sri-external-script" || id == "exposed-cicd-config":
-		return DomainWeb, PhaseRecon
+		return DomainWeb, PhaseVuln
+	case id == "subdomain-takeover-hint":
+		return DomainSubs, PhaseVuln
 	}
 
-	// Exposición de secretos/credenciales -> acceso inicial.
+	// Secretos/credenciales expuestos -> vulnerabilidad.
 	if containsAny(id, "env-file", "git-config", "wp-config", "ssh-key", "secret", "backup") {
-		return DomainWeb, PhaseInitial
+		return DomainWeb, PhaseVuln
 	}
-	// Servicios de red sin auth / con acceso -> acceso inicial.
+	// Servicios de red sin auth -> vulnerabilidad.
 	if containsAny(id, "redis", "memcached", "elasticsearch", "ftp-anonymous", "smtp-vrfy", "pop3") {
-		return DomainNetwork, PhaseInitial
+		return DomainNetwork, PhaseVuln
 	}
-	// Paneles / credenciales por defecto -> acceso inicial.
-	if containsAny(id, "admin", "default-credentials") {
-		return DomainWeb, PhaseInitial
-	}
-	// Resto de misconfig/compliance web -> reconocimiento/exposición.
-	if containsAny(id, "swagger", "graphql", "phpinfo", "directory-listing", "csp", "security-headers", "cookie", "https", "redirect", "error", "manifest") {
-		return DomainWeb, PhaseRecon
+	// Paneles / credenciales por defecto y misconfig/compliance web -> vulnerabilidad.
+	if containsAny(id, "admin", "default-credentials", "phpinfo", "csp", "security-headers", "cookie", "https", "redirect", "error", "manifest") {
+		return DomainWeb, PhaseVuln
 	}
 
-	return DomainGeneral, PhaseRecon
+	return DomainGeneral, PhaseVuln
+}
+
+func exploitDomain(id string) string {
+	switch {
+	case id == "ad-credentials-valid" || strings.Contains(id, "lateral"):
+		return DomainAD
+	case strings.Contains(id, "secret"):
+		return DomainWeb
+	default: // vsftpd, redis, etc.
+		return DomainNetwork
+	}
 }
 
 // Domain devuelve solo el dominio técnico.
