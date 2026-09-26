@@ -193,14 +193,21 @@ cruza contra la CVE db local (mismo motor que usa fingerprinting de servidor).
 Es una aproximación: el constraint declarado (`^3.4.0`) no garantiza que
 la versión REALMENTE instalada sea esa — el hallazgo lo aclara.
 
+**Lockfiles (versión exacta instalada)**: si el sitio expone un lockfile
+(`composer.lock` o `package-lock.json`, v1/v2/v3), Auditek lee de ahí la versión
+**exacta instalada** de cada dependencia — no la aproximación del constraint. El
+cruce de CVEs se hace sobre esas versiones y el hallazgo ya **no** lleva la
+salvedad de "versión aproximada". Si hay lockfile de un ecosistema, se prefiere
+sobre su manifiesto para el cruce de versión (el manifiesto se sigue usando para
+detectar constraints sueltas).
+
 Con **`--osv`**, además se consulta [OSV](https://osv.dev) (osv.dev): la base
-pública de vulnerabilidades por ecosistema de paquetes. `package.json` se
-consulta como `npm` y `composer.json` como `Packagist`, cubriendo advisories
-GHSA/CVE con rangos de versión precisos, mucho más allá del set curado local
-(hoy ~8 productos). Es opt-in porque contacta un tercero (api.osv.dev); solo
-envía nombres+versiones de paquetes ya leídos del manifiesto expuesto, y un
-fallo de red no rompe el scan. La versión sigue siendo la aproximada del
-constraint, así que el hallazgo mantiene esa salvedad.
+pública de vulnerabilidades por ecosistema de paquetes. npm (`package.json` /
+`package-lock.json`) se consulta como `npm` y composer (`composer.json` /
+`composer.lock`) como `Packagist`, cubriendo advisories GHSA/CVE con rangos de
+versión precisos, mucho más allá del set curado local (hoy ~8 productos). Es
+opt-in porque contacta un tercero (api.osv.dev); solo envía nombres+versiones de
+paquetes ya leídos del archivo expuesto, y un fallo de red no rompe el scan.
 
 **Archivos de CI/CD expuestos**: `.gitlab-ci.yml`, `.travis.yml`,
 `.circleci/config.yml`, `Jenkinsfile`, y varios paths comunes de GitHub

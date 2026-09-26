@@ -127,14 +127,26 @@ func (s *HTTPScanner) Scan(baseURL string) []Finding {
 			}
 		}
 
-		// Buscar manifiestos de dependencias (solo si 200)
-		for _, manifestPath := range []string{"/package.json", "/composer.json"} {
-			if mresp, err := s.doRequest("GET", baseURL+manifestPath); err == nil && mresp.StatusCode == 200 {
-				ecosystem := "npm"
-				if manifestPath == "/composer.json" {
-					ecosystem = "Packagist"
-				}
-				findings = append(findings, AnalyzeDependencyManifest(mresp.Body, baseURL+manifestPath, manifestPath, ecosystem, s.OSV)...)
+		// Lockfiles primero: dan la versión EXACTA instalada, así el cruce de
+		// CVEs no depende de aproximar el constraint del manifiesto.
+		lockCovered := map[string]bool{}
+		for _, lf := range []struct{ path, eco string }{
+			{"/composer.lock", "Packagist"},
+			{"/package-lock.json", "npm"},
+		} {
+			if mresp, err := s.doRequest("GET", baseURL+lf.path); err == nil && mresp.StatusCode == 200 {
+				findings = append(findings, AnalyzeLockfile(mresp.Body, baseURL+lf.path, lf.path, lf.eco, s.OSV)...)
+				lockCovered[lf.eco] = true
+			}
+		}
+		// Manifiestos: siempre para constraints sueltas (loose-version); el cruce
+		// aproximado de versión se omite si un lockfile ya cubrió ese ecosistema.
+		for _, mf := range []struct{ path, eco string }{
+			{"/package.json", "npm"},
+			{"/composer.json", "Packagist"},
+		} {
+			if mresp, err := s.doRequest("GET", baseURL+mf.path); err == nil && mresp.StatusCode == 200 {
+				findings = append(findings, AnalyzeDependencyManifest(mresp.Body, baseURL+mf.path, mf.path, mf.eco, s.OSV, lockCovered[mf.eco])...)
 			}
 		}
 
