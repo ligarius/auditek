@@ -75,6 +75,7 @@ Cuatro tipos de escaneo:
 | `--ct` | off | subdomains | además consulta Certificate Transparency (crt.sh) y fusiona con la wordlist |
 | `--exclude-rule <ids>` | — | network/web | IDs de reglas a omitir, separados por coma |
 | `--rules <dir>` | `rules` | network/web | directorio de reglas a cargar en vez del embebido |
+| `--osv` | off | web | consulta OSV (osv.dev) por CVEs de dependencias en manifiestos expuestos (`package.json`/`composer.json`) |
 | `--exec-hook <f>` | — | network/web | binario externo tuyo cuya salida JSON se integra al reporte (ver más abajo) |
 | `--export <fmt>` | — | todos | exporta el reporte sin preguntar: `html` \| `none` (vacío = pregunta interactivamente) |
 | `--stealth` | off | network/web | modo evasión avanzado (requiere `--scope` + auth) |
@@ -179,9 +180,18 @@ manifiesto y marca constraints como `^1.2.3`, `~1.2.3`, `*`, o `latest` —
 cualquier versión futura se instalaría sin revisión.
 
 **CVEs en dependencias declaradas**: la versión de cada dependencia se
-cruza contra la CVE db (mismo motor que usa fingerprinting de servidor).
+cruza contra la CVE db local (mismo motor que usa fingerprinting de servidor).
 Es una aproximación: el constraint declarado (`^3.4.0`) no garantiza que
 la versión REALMENTE instalada sea esa — el hallazgo lo aclara.
+
+Con **`--osv`**, además se consulta [OSV](https://osv.dev) (osv.dev): la base
+pública de vulnerabilidades por ecosistema de paquetes. `package.json` se
+consulta como `npm` y `composer.json` como `Packagist`, cubriendo advisories
+GHSA/CVE con rangos de versión precisos, mucho más allá del set curado local
+(hoy ~8 productos). Es opt-in porque contacta un tercero (api.osv.dev); solo
+envía nombres+versiones de paquetes ya leídos del manifiesto expuesto, y un
+fallo de red no rompe el scan. La versión sigue siendo la aproximada del
+constraint, así que el hallazgo mantiene esa salvedad.
 
 **Archivos de CI/CD expuestos**: `.gitlab-ci.yml`, `.travis.yml`,
 `.circleci/config.yml`, `Jenkinsfile`, y varios paths comunes de GitHub
