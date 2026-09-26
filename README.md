@@ -193,13 +193,21 @@ cruza contra la CVE db local (mismo motor que usa fingerprinting de servidor).
 Es una aproximación: el constraint declarado (`^3.4.0`) no garantiza que
 la versión REALMENTE instalada sea esa — el hallazgo lo aclara.
 
-**Lockfiles (versión exacta instalada)**: si el sitio expone un lockfile
-(`composer.lock` o `package-lock.json`, v1/v2/v3), Auditek lee de ahí la versión
-**exacta instalada** de cada dependencia — no la aproximación del constraint. El
-cruce de CVEs se hace sobre esas versiones y el hallazgo ya **no** lleva la
-salvedad de "versión aproximada". Si hay lockfile de un ecosistema, se prefiere
-sobre su manifiesto para el cruce de versión (el manifiesto se sigue usando para
-detectar constraints sueltas).
+**Lockfiles (versión exacta instalada)**: si el sitio expone un lockfile,
+Auditek lee de ahí la versión **exacta instalada** de cada dependencia — no la
+aproximación del constraint. El cruce de CVEs se hace sobre esas versiones y el
+hallazgo ya **no** lleva la salvedad de "versión aproximada". Formatos y
+ecosistemas soportados:
+
+| Archivo | Ecosistema (OSV) |
+|---|---|
+| `composer.lock` | Packagist |
+| `package-lock.json` (v1/v2/v3), `yarn.lock` (v1 y berry) | npm |
+| `requirements.txt` (fijado con `==`), `Pipfile.lock` | PyPI |
+| `go.mod` | Go |
+
+Si hay lockfile de un ecosistema, se prefiere sobre su manifiesto para el cruce
+de versión (el manifiesto se sigue usando para detectar constraints sueltas).
 
 Con **`--osv`**, además se consulta [OSV](https://osv.dev) (osv.dev): la base
 pública de vulnerabilidades por ecosistema de paquetes. npm (`package.json` /
