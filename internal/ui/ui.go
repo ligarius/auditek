@@ -144,6 +144,14 @@ func SeverityDot(sev string) string {
 	return paint(code, sym(glyph, "*"))
 }
 
+// ColorBySeverity pinta text con el color asociado a una severidad
+// (critical/high/medium/low/info). Útil para elementos que no son un hallazgo
+// pero comparten la paleta, como la postura de riesgo agregada.
+func ColorBySeverity(sev, text string) string {
+	_, _, code, _ := sevMeta(sev)
+	return paint(code, text)
+}
+
 // SeverityCount devuelve "<n> <palabra>" coloreado por severidad, o en gris si n==0.
 func SeverityCount(sev string, n int) string {
 	_, word, code, _ := sevMeta(sev)

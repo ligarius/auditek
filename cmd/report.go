@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"auditek/internal/correlate"
 	"auditek/internal/findings"
 	"auditek/internal/report"
 	"auditek/internal/ui"
@@ -94,6 +95,7 @@ func printConsole(scanID string, results []findings.Finding) error {
 	}
 	fmt.Printf("  %s   %s\n", ui.Bold("Resumen"), strings.Join(seg, ui.Gray(" · ")))
 	fmt.Printf("  %s     %d hallazgos\n", ui.Bold("Total"), len(results))
+	printRiskPosture(correlate.RiskScore(results))
 	fmt.Println()
 	ui.Info("Auditoría generada con Auditek — servicios de ciberseguridad")
 
