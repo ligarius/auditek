@@ -151,6 +151,7 @@ var boolFlags = map[string]bool{
 	"--v": true, "-v": true,
 	"--vv": true, "-vv": true,
 	"--vvv": true, "-vvv": true,
+	"--ct": true, "-ct": true,
 }
 
 // reorderArgs mueve los flags (--x) al frente y deja los posicionales al final,
@@ -192,6 +193,7 @@ func runScanCmd(args []string) error {
 	depth := fs.String("depth", "normal", "solo scan subdomains: fast | normal | deep")
 	focus := fs.String("focus", "", "solo scan subdomains: categorías separadas por coma (admin,dev,infra,remote-access,devops,web,sensitive,data) — si se pasa, ignora --depth")
 	wordlistFile := fs.String("wordlist", "", "solo scan subdomains: archivo externo (una entrada por línea) — ignora --depth y --focus")
+	ctLogs := fs.Bool("ct", false, "solo scan subdomains: además consulta Certificate Transparency (crt.sh) para descubrir subdominios reales")
 	execHook := fs.String("exec-hook", "", "ruta a un programa externo (tuyo) a ejecutar tras el scan pasivo; debe imprimir en stdout un array JSON con el mismo formato de 'auditek import' — ver README")
 	exportFmt := fs.String("export", "", "exportar el reporte sin preguntar: html | none (vacío = preguntar interactivamente)")
 	vLvl1 := fs.Bool("v", false, "verbose: sub-pasos y evidencia completa por hallazgo")
@@ -240,7 +242,7 @@ func runScanCmd(args []string) error {
 	case "web":
 		return runWebScan(target, *stealthMode, *delayMs, excluded, *rulesDir, parseHeaders([]string(headers), *cookie), *execHook, *exportFmt)
 	case "subdomains":
-		return runSubdomainScan(target, *depth, *focus, *wordlistFile)
+		return runSubdomainScan(target, *depth, *focus, *wordlistFile, *ctLogs)
 	case "container":
 		return runContainerScan(target, excluded, *exportFmt)
 	default:
@@ -281,7 +283,7 @@ func parseHeaders(raw []string, cookie string) map[string]string {
 	return h
 }
 
-func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
+func runSubdomainScan(domain, depth, focusSpec, wordlistFile string, useCT bool) error {
 	// quita protocolo si el usuario lo puso por costumbre (scan subdomains https://x.cl)
 	domain = strings.TrimPrefix(domain, "https://")
 	domain = strings.TrimPrefix(domain, "http://")
@@ -313,8 +315,28 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
 	}
 
 	ui.Title("Escaneo de subdominios", domain)
+
+	// Fuente extra: Certificate Transparency (crt.sh). Descubre nombres reales
+	// que la wordlist nunca adivinaría; se fusionan con los candidatos y se
+	// confirman por DNS igual que el resto.
+	ctSet := map[string]bool{}
+	if useCT {
+		ui.Step("Consultando Certificate Transparency %s", ui.Gray("· crt.sh"))
+		ctLabels, err := subdomain.FetchCTLogs(domain, 20*time.Second)
+		if err != nil {
+			ui.Warn("CT no disponible (%v) — sigo solo con la wordlist", err)
+		} else {
+			for _, l := range ctLabels {
+				ctSet[l] = true
+			}
+			before := len(wordlist)
+			wordlist = subdomain.MergeCandidates(wordlist, ctLabels)
+			ui.OK("CT aportó %d candidato(s) · %d nuevos sobre la wordlist", len(ctLabels), len(wordlist)-before)
+		}
+	}
+
 	ui.Step("Resolviendo subdominios %s", ui.Gray("· "+source))
-	ui.Detail(2, "wordlist: %d entradas · concurrencia 20 · timeout 3s", len(wordlist))
+	ui.Detail(2, "candidatos: %d · concurrencia 20 · timeout 3s", len(wordlist))
 	results := subdomain.Enumerate(domain, wordlist, 20, 3*time.Second)
 	ui.OK("Resolución completa · %d subdominio(s) con respuesta", len(results))
 
@@ -341,13 +363,17 @@ func runSubdomainScan(domain, depth, focusSpec, wordlistFile string) error {
 				break
 			}
 		}
+		src := "wordlist DNS"
+		if ctSet[r.Subdomain] {
+			src = "Certificate Transparency + DNS"
+		}
 		toSave = append(toSave, findings.Finding{
 			ScanID:    scanID,
 			RuleID:    "subdomain-discovered",
 			RuleName:  fmt.Sprintf("Subdominio encontrado: %s", r.FQDN),
 			Target:    r.FQDN,
 			Severity:  "info",
-			Evidence:  fmt.Sprintf("Resuelve a: %s%s", strings.Join(r.IPs, ", "), internalNote),
+			Evidence:  fmt.Sprintf("Resuelve a: %s%s [fuente: %s]", strings.Join(r.IPs, ", "), internalNote, src),
 			Timestamp: time.Now(),
 		})
 	}
