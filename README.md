@@ -120,9 +120,18 @@ STARTTLS. El motor soporta protocolos de un solo intercambio y con
 handshake multi-paso (`steps:` en el YAML).
 
 **CVEs reales**: fingerprinting de versión vía headers HTTP (`Server`,
-`X-Powered-By`) y banners TCP, cruzado contra un set curado de 9 CVEs bien
-documentados + lo que traiga `update-db`. Cada hallazgo incluye un campo
-**Riesgo** explicando qué tipo de ataque habilita, no solo qué es.
+`X-Powered-By`), meta-generator del body y banners TCP, cruzado contra un set
+curado de 9 CVEs bien documentados + lo que traiga `update-db` (NVD) + OSV
+(`--osv`, dependencias). Cada hallazgo incluye un campo **Riesgo** explicando
+qué tipo de ataque habilita, no solo qué es.
+
+**Tecnologías detectadas**: el fingerprint reconoce ~18 componentes con versión
+(apache, nginx, iis, openresty, lighttpd, litespeed, tomcat, jetty, gunicorn,
+werkzeug, php, wordpress, drupal, jquery, bootstrap, openssh, vsftpd, proftpd,
+exim). Cada versión detectada se reporta como hallazgo `technology-detected`
+(severidad info) aunque no tenga un CVE conocido — exponer la versión exacta ya
+es superficie de reconocimiento. Si además cae en un rango vulnerable, se suma
+el CVE correspondiente.
 
 ## Escribir tus propias reglas
 
