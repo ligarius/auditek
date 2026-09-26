@@ -22,7 +22,7 @@ func runReportCmd(args []string) error {
 	args = reorderArgs(args)
 
 	fs := flag.NewFlagSet("report", flag.ExitOnError)
-	format := fs.String("format", "console", "formato: console|json|html")
+	format := fs.String("format", "console", "formato: console|json|html|sarif")
 	fs.Parse(args)
 
 	rest := fs.Args()
@@ -56,6 +56,8 @@ func runReportCmd(args []string) error {
 		return printJSON(results)
 	case "html":
 		return generateHTMLReport(scanID, results)
+	case "sarif":
+		return generateSARIF(scanID, results)
 	default:
 		return printConsole(scanID, results)
 	}
@@ -126,5 +128,25 @@ func generateHTMLReport(scanID string, results []findings.Finding) error {
 	}
 
 	ui.OK("Reporte generado: %s", ui.Bold(filename))
+	return nil
+}
+
+// generateSARIF escribe el reporte en formato SARIF 2.1.0, para subir a GitHub
+// code scanning u otras herramientas de CI que consumen el estándar.
+func generateSARIF(scanID string, results []findings.Finding) error {
+	target := ""
+	if len(results) > 0 {
+		target = results[0].Target
+	}
+	data, err := report.BuildSARIF(scanID, target, results)
+	if err != nil {
+		return err
+	}
+	filename := fmt.Sprintf("auditek-report-%s.sarif", scanID)
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return err
+	}
+	ui.OK("SARIF generado: %s", ui.Bold(filename))
+	ui.Info("Súbelo a GitHub code scanning o tu herramienta SARIF.")
 	return nil
 }

@@ -73,5 +73,5 @@ Salida:
   El color se desactiva solo si la salida no es una terminal, con NO_COLOR o TERM=dumb.
 
 Flags de report:
-  --format <fmt>   console|json|html`)
+  --format <fmt>   console|json|html|sarif  (sarif = SARIF 2.1.0 para CI/code scanning)`)
 }
