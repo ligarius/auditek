@@ -26,6 +26,25 @@ por módulos externos (`--exec-hook`), nunca vive en el core.
 - **Correlación + score de riesgo** (0–100) y **reportes** console/JSON/HTML
   (con branding) y **SARIF** (CI / GitHub code scanning).
 
+## Ciclo de trabajo (pentest lifecycle)
+
+auditek se organiza siguiendo el flujo de un pentest. El **core** cubre hasta
+Vulnerabilidades sin autenticarse; Explotación/Post-explotación se hacen con
+módulos externos (`--exec-hook`), y Reporte/Retest son actividades del flujo.
+
+| Fase | Qué hace auditek | Cómo |
+|---|---|---|
+| **1. Reconocimiento** | Puertos, banners, subdominios (DNS + CT), tecnologías, Domain Controller | `scan network`, `scan subdomains --ct` |
+| **2. Enumeración** | Superficie de servicios: LDAP/Kerberos/GC, firma SMB, movimiento lateral, API docs/GraphQL | parte de `scan network` / `scan web` |
+| **3. Escaneo / Vulnerabilidades** | Reglas HTTP/TCP, CVEs por versión, SCA (lockfiles + OSV), TLS, SRI, secretos | `scan web`, `scan container`, `--osv` |
+| **4. Explotación** | Validación/confirmación **activa** (credenciales, RCE conocido) — **fuera del core** | módulos `exploits/` vía `--exec-hook` / `import` |
+| **5. Post-explotación** | Cadenas de escalada correlacionadas + score de riesgo | `correlate` (automático) |
+| **6. Reporte** | Entregable console/HTML (branding) / JSON / SARIF, agrupado por fase | `report`, `--export` |
+| **7. Retest** | Re-escanear tras remediar; cada scan queda en el histórico (SQLite) para comparar a mano | volver a correr `scan` (diff automático: roadmap) |
+
+Los hallazgos se etiquetan con su **fase** (1–5) y su **dominio** técnico — ver
+"Categorización".
+
 ## Instalación
 
 Requiere Go 1.22+.
@@ -226,15 +245,16 @@ Cada hallazgo se clasifica automáticamente (por su `RuleID`, en
 
 - **Dominio técnico**: Red · Web · Active Directory · Dependencias · Subdominios
   · Contenedor · General.
-- **Fase de la kill-chain**: Reconocimiento · Acceso inicial · Movimiento lateral
-  · Escalada / Correlación.
+- **Fase del ciclo de pentest** (ver "Ciclo de trabajo"): Reconocimiento ·
+  Enumeración · Escaneo/Vulnerabilidades · Explotación · Post-explotación.
+  (Reporte y Retest son actividades del flujo, no categorías de hallazgo.)
 
 Dónde se ve cada eje:
 
 - **Consola** (`scan` y `report`): agrupa por **severidad** y muestra el dominio
   como etiqueta `[Red]`, `[Active Directory]`, etc.
-- **Reporte HTML**: agrupa por **fase** (secciones), con la severidad y el
-  dominio en cada hallazgo.
+- **Reporte HTML**: agrupa por **fase** (secciones, en orden del ciclo), con la
+  severidad y el dominio en cada hallazgo.
 - **JSON** (`report --format json`): cada hallazgo incluye `domain` y `phase`.
 
 ## Escribir tus propias reglas
@@ -617,6 +637,7 @@ Cada límite de arriba tiene un camino de mejora concreto, ordenado por impacto:
 | OSV depende de red por scan | Resuelto: cache local `~/.auditek/osv-cache.json` (TTL 24h) con fallback offline. Pendiente: mismo cache para NVD. | Bajo |
 | Correlación solo intra-scan | Correlacionar hallazgos entre scans del mismo objetivo/cliente (persistidos en la BD). | Medio |
 | Integración CI | Resuelto: `--export sarif` desde el scan + workflow de ejemplo (`.github/workflows/auditek.yml`) que sube a code scanning. | Bajo |
+| Retest sin diff | `report --diff <scan-viejo> <scan-nuevo>`: nuevos / resueltos / persistentes entre dos scans del mismo objetivo (ya están en la BD). | Medio |
 
 ## Estructura del proyecto
 
