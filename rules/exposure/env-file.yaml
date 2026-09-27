@@ -17,3 +17,8 @@ http:
       - type: word
         part: body
         words: ["DB_PASSWORD", "API_KEY", "SECRET", "DATABASE_URL"]
+      # No es un .env real si el cuerpo es una página HTML (catch-all/SPA/soft-404).
+      - type: word
+        part: body
+        words: ["<!DOCTYPE", "<!doctype", "<html", "<HTML"]
+        negative: true

@@ -17,6 +17,12 @@ http:
     matchers:
       - type: status
         status: [200]
+      # Debe ser realmente una página de login (campo de contraseña en el HTML);
+      # evita disparar en la home genérica que un SPA/catch-all devuelve para
+      # /login, /wp-login.php, etc.
+      - type: word
+        part: body
+        words: ['type="password"', "type='password'", "type=password", 'name="password"']
       - type: word
         part: body
         words: ["recaptcha", "hcaptcha", "turnstile", "captcha", "g-recaptcha"]
