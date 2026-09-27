@@ -19,4 +19,9 @@ http:
       - type: word
         words: ["<?php", "define(", "DB_"]
         condition: and
+      # No es un backup real si el cuerpo es HTML (catch-all/SPA/soft-404).
+      - type: word
+        part: body
+        words: ["<!DOCTYPE", "<!doctype", "<html", "<HTML"]
+        negative: true
     matchers-condition: and

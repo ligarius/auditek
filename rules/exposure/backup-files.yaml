@@ -17,6 +17,11 @@ http:
       - type: word
         words: ["INSERT ", "CREATE ", "SELECT "]
         condition: and
+      # No es un dump real si el cuerpo es HTML (catch-all/SPA/soft-404).
+      - type: word
+        part: body
+        words: ["<!DOCTYPE", "<!doctype", "<html", "<HTML"]
+        negative: true
     matchers-condition: and
   - method: GET
     path:

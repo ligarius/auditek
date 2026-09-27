@@ -20,3 +20,8 @@ http:
       - type: word
         part: body
         words: ["PRIVATE KEY"]
+      # No es una clave real si el cuerpo es HTML (catch-all/SPA/soft-404).
+      - type: word
+        part: body
+        words: ["<!DOCTYPE", "<!doctype", "<html", "<HTML"]
+        negative: true
